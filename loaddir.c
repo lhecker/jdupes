@@ -128,7 +128,7 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
   if (unlikely(dir == NULL || filelistp == NULL || *dir == '\0')) jc_nullptr("loaddir()");
   LOUD(fprintf(stderr, "loaddir: scanning '%s' (order %d, recurse %d)\n", dir, user_item_count, recurse));
 
-  if (interrupt) return;
+  if (unlikely(interrupt != 0)) return;
 
   dir = remove_leading_dotslashes(dir);
   if (*dir == '.' && *(dir + 1) == '\0') dotdir = 1;
@@ -203,6 +203,7 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
     size_t d_name_len;
 #endif /* UNICODE */
 
+    if (unlikely(interrupt != 0)) return;
     LOUD(fprintf(stderr, "loaddir: readdir: '%s'\n", dirinfo->d_name));
     if (unlikely(!jc_streq(dirinfo->d_name, ".") || !jc_streq(dirinfo->d_name, ".."))) continue;
     check_sigusr1();
@@ -272,7 +273,7 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
       } else { LOUD(fprintf(stderr, "loaddir: directory: not recursing\n")); }
       free(newfile->d_name);
       free(newfile);
-      if (unlikely(interrupt)) return;
+      if (unlikely(interrupt != 0)) return;
       continue;
     } else {
 //add_single_file:
@@ -293,18 +294,12 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
         LOUD(fprintf(stderr, "loaddir: not a regular file: %s\n", newfile->d_name);)
         free(newfile->d_name);
         free(newfile);
-        if (single == 1) {
-          single = 0;
-          goto skip_single;
-        }
+//    if (single == 1) return;
         continue;
       }
     }
     /* Skip directory stuff if adding only a single file */
-    if (single == 1) {
-      single = 0;
-      goto skip_single;
-    }
+//    if (single == 1) return;
   }
 
 #ifdef UNICODE
@@ -314,7 +309,6 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
   jc_closedir(cd);
 #endif
 
-skip_single:
   return;
 
 error_stat_dir:
