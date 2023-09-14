@@ -571,3 +571,56 @@ error_path_hash:
   fprintf(stderr, "error: internal error hashing a path\n");
   return -255;
 }
+
+
+int cleanup_hashdb(uint64_t *cnt, hashdb_t *cur)
+{
+  int err = 0;
+  static char **list;
+  static uint64_t listsize;
+  char *temp;
+  unsigned int i;
+
+  /* First call: traverse array, sort results, do actual verification */
+  if (unlikely(cur == NULL)) {
+    list = NULL;
+    listsize = 0;
+    *cnt = 0;
+
+    for (i = 0; i < HT_SIZE; i++) {
+      if (hashdb[i] == NULL) continue;
+      err = cleanup_hashdb(cnt, hashdb[i]);
+      if (err != 0) return err;
+    }
+
+    /* TODO: sort list first */
+
+    /* Check each item for existence; remove if it can't be accessed */
+    for (i = 0; i < *cnt; i++) {
+      char *path = *(list + i);
+      if (jc_access(path, JC_F_OK) == 0) continue;
+      /* TODO: invalidate entry - maybe need pointer? */
+    }
+
+    return 0;
+  }
+
+  /* If node is valid, add file to list to be checked, expanding array as needed */
+  if (cur->hashcount != 0) {
+    if (listsize == *cnt) {
+      listsize += 4096;
+      list = realloc(list, sizeof(char *) * listsize);
+      if (list == NULL) jc_oom("cleanup_hashdb realloc");
+    }
+    temp = (char *)malloc(strlen(cur->path) + 1);
+    if (temp == NULL) jc_oom("cleanup_hashdb path");
+    *(list + *cnt) = temp;
+    strcpy(temp, cur->path);
+    (void)*cnt++;
+  }
+
+  /* Traverse the tree, propagating errors */
+  if (err == 0 && cur->left != NULL) err = cleanup_hashdb(cnt, cur->left);
+  if (err == 0 && cur->right != NULL) err = cleanup_hashdb(cnt, cur->right);
+  return err;
+}
