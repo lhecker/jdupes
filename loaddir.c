@@ -25,7 +25,7 @@
 #endif
 
 #ifdef UNICODE
- static wpath_t wname;
+ static wchar_t wname[WPATH_MAX];
 #endif
 
 /* Detect Windows and modify as needed */

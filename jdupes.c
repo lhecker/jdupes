@@ -72,7 +72,6 @@
 /* Detect Windows and modify as needed */
 #if defined _WIN32 || defined __MINGW32__
  #ifdef UNICODE
-  wpath_t wstr;
  #endif /* UNICODE */
 #else /* Not Windows */
  #ifdef UNICODE
