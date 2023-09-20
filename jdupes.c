@@ -657,7 +657,6 @@ skip_partialonly_noise:
     /* F_RECURSE is not set for directories before --recurse: */
     for (int x = optind; x < firstrecurse; x++) {
       if (unlikely(interrupt)) goto interrupt_exit;
-      jc_slash_convert(argv[x]);
       loaddir(argv[x], &files, 0);
       user_item_count++;
     }
@@ -667,14 +666,12 @@ skip_partialonly_noise:
 
     for (int x = firstrecurse; x < argc; x++) {
       if (unlikely(interrupt)) goto interrupt_exit;
-      jc_slash_convert(argv[x]);
       loaddir(argv[x], &files, 1);
       user_item_count++;
     }
   } else {
     for (int x = optind; x < argc; x++) {
       if (unlikely(interrupt)) goto interrupt_exit;
-      jc_slash_convert(argv[x]);
       loaddir(argv[x], &files, ISFLAG(flags, F_RECURSE));
       user_item_count++;
     }

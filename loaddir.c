@@ -132,6 +132,8 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
 
   dir = remove_leading_dotslashes(dir);
   if (*dir == '.' && *(dir + 1) == '\0') dotdir = 1;
+  /* Convert forward slashes to backslashes if on Windows */
+  jc_slash_convert(dir);
 
   /* Get directory stats (or file stats if it's a file) */
   i = getdirstats(dir, &inode, &device, &mode);
