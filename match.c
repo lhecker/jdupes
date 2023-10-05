@@ -33,6 +33,7 @@ void add_file_to_hashdb(file_t *file)
 #endif /* NO_HASHDB */
 
 
+#ifndef NO_HARDLINKS
 /* Copy any hashes between entries for detected hard-linked files */
 static void cross_copy_hashes(file_t *file1, file_t *file2)
 {
@@ -84,6 +85,7 @@ static void cross_copy_hashes(file_t *file1, file_t *file2)
 
   return;
 }
+#endif  /* NO_HARDLINKS */
 
 void registerpair(file_t **matchlist, file_t *newmatch, int (*comparef)(file_t *f1, file_t *f2))
 {
@@ -260,7 +262,7 @@ file_t **checkmatch(filetree_t * restrict tree, file_t * const restrict file)
         file->filehash = file->filehash_partial;
         SETFLAG(file->flags, FF_HASH_FULL);
 #ifndef NO_HASHDB
-	dirtyfile = 1;
+        dirtyfile = 1;
 #endif
         DBG(small_file++;)
       }
@@ -268,7 +270,7 @@ file_t **checkmatch(filetree_t * restrict tree, file_t * const restrict file)
         tree->file->filehash = tree->file->filehash_partial;
         SETFLAG(tree->file->flags, FF_HASH_FULL);
 #ifndef NO_HASHDB
-	dirtytree = 1;
+        dirtytree = 1;
 #endif
         DBG(small_file++;)
       }
@@ -284,7 +286,7 @@ file_t **checkmatch(filetree_t * restrict tree, file_t * const restrict file)
           tree->file->filehash = *filehash;
           SETFLAG(tree->file->flags, FF_HASH_FULL);
 #ifndef NO_HASHDB
-	  dirtytree = 1;
+          dirtytree = 1;
 #endif
         }
 
@@ -295,7 +297,7 @@ file_t **checkmatch(filetree_t * restrict tree, file_t * const restrict file)
           file->filehash = *filehash;
           SETFLAG(file->flags, FF_HASH_FULL);
 #ifndef NO_HASHDB
-	  dirtyfile = 1;
+          dirtyfile = 1;
 #endif
         }
 
