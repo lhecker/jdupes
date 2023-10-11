@@ -111,7 +111,7 @@ file_t *grokfile(const char * const restrict name, file_t * restrict * const res
 void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurse)
 {
   file_t * restrict newfile;
-  struct dirent *dirinfo;
+  JC_DIRENT *dirinfo;
   size_t dirlen, dirpos;
   int i, single = 0, dotdir = 0;
   jdupes_ino_t inode;
@@ -122,7 +122,7 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
   HANDLE hFind = INVALID_HANDLE_VALUE;
   char *p;
 #else
-  DIR *cd;
+  JC_DIR *cd;
 #endif
   static int sf_warning = 0; /* single file warning should only appear once */
 
@@ -195,11 +195,11 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
     dirinfo = (struct dirent *)malloc(sizeof(struct dirent));
     if (!W2M(ffd.cFileName, dirinfo->d_name)) continue;
 #else
-  cd = opendir(dir);
+  cd = jc_opendir(dir);
   if (unlikely(!cd)) goto error_cd;
   dirlen = strlen(dir);
 
-  while ((dirinfo = readdir(cd)) != NULL) {
+  while ((dirinfo = jc_readdir(cd)) != NULL) {
     char * restrict tp = tempname;
     size_t d_name_len;
 #endif /* UNICODE */
@@ -312,7 +312,7 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
   while (FindNextFileW(hFind, &ffd) != 0);
   FindClose(hFind);
 #else
-  closedir(cd);
+  jc_closedir(cd);
 #endif
 
 skip_single:
