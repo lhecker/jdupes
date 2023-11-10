@@ -88,17 +88,32 @@ int save_hash_database(const char * const restrict dbname, const int destroy)
     /* Try to remove any existing temporary database, ignoring errors */
     remove(dbtemp);
     errno = 0;
-    db = jc_fopen(dbname, JC_FILE_MODE_RW_SEQ);
+    dbtemp = malloc(strlen(dbname) + 5);
+    if (dbtemp == NULL) goto error_hashdb_alloc;
+    strcpy(dbtemp, dbname);
+    strcat(dbtemp, ".tmp");
+    /* Try to remove any existing temporary database, ignoring errors */
+    jc_remove(dbtemp);
+    db = jc_fopen(dbtemp, JC_FILE_MODE_RW_SEQ);
     if (db == NULL) goto error_hashdb_open;
     if (write_hashdb_entry(db, NULL, &cnt, destroy) != 0) goto error_hashdb_write;
     fclose(db);
     if (new_hashdb == 0) {
+<<<<<<< HEAD
       errno = 0;
       if (remove(dbname) != 0) {
         if (errno != ENOENT) goto error_hashdb_remove;
       }
     }
     if (rename(dbtemp, dbname) != 0) goto error_hashdb_rename;
+=======
+      jc_errno = 0;
+      if (jc_remove(dbname) != 0) {
+        if (jc_errno != ENOENT) goto error_hashdb_remove;
+      }
+    }
+    if (jc_rename(dbtemp, dbname) != 0) goto error_hashdb_rename;
+>>>>>>> a8b0812 (hashdb: don't overwrite existing DB, use a temp file instead)
     LOUD(if (hashdb_dirty == 1) fprintf(stderr, "Wrote %" PRIu64 " items to hash databse '%s'\n", cnt, dbname);)
     hashdb_dirty = 0;
   }
