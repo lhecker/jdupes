@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 #ifndef NO_CHUNKSIZE
   static long manual_chunk_size = 0;
  #ifdef __linux__
-  static struct jc_proc_cacheinfo pci;
+  static struct jc_proc_cacheinfo *pci;
  #endif /* __linux__ */
 #endif /* NO_CHUNKSIZE */
 #ifdef ENABLE_DEDUPE
@@ -262,14 +262,16 @@ int main(int argc, char **argv)
 #ifndef NO_CHUNKSIZE
 #ifdef __linux__
   /* Auto-tune chunk size to be half of L1 data cache if possible */
-  jc_get_proc_cacheinfo(&pci);
-  if (pci.l1 != 0) auto_chunk_size = (pci.l1 / 2);
-  else if (pci.l1d != 0) auto_chunk_size = (pci.l1d / 2);
-  /* Must be at least 4096 (4 KiB) and cannot exceed CHUNK_SIZE */
-  if (auto_chunk_size < MIN_CHUNK_SIZE || auto_chunk_size > MAX_CHUNK_SIZE) auto_chunk_size = CHUNK_SIZE;
-  /* Force to a multiple of 4096 if it isn't already */
-  if ((auto_chunk_size & 0x00000fffUL) != 0)
-    auto_chunk_size = (auto_chunk_size + 0x00000fffUL) & 0x000ff000;
+  pci = jc_get_proc_cacheinfo(0);
+  if (pci != NULL) {
+    if (pci->l1 != 0) auto_chunk_size = (pci->l1 / 2);
+    else if (pci->l1d != 0) auto_chunk_size = (pci->l1d / 2);
+    /* Must be at least 4096 (4 KiB) and cannot exceed CHUNK_SIZE */
+    if (auto_chunk_size < MIN_CHUNK_SIZE || auto_chunk_size > MAX_CHUNK_SIZE) auto_chunk_size = CHUNK_SIZE;
+    /* Force to a multiple of 4096 if it isn't already */
+    if ((auto_chunk_size & 0x00000fffUL) != 0)
+      auto_chunk_size = (auto_chunk_size + 0x00000fffUL) & 0x000ff000;
+  }
 #endif /* __linux__ */
 #endif /* NO_CHUNKSIZE */
 
@@ -864,7 +866,9 @@ skip_all_scan_code:
     if (manual_chunk_size > 0) fprintf(stderr, "I/O chunk size: %ld KiB (manually set)\n", manual_chunk_size >> 10);
     else {
   #ifdef __linux__
-      fprintf(stderr, "I/O chunk size: %" PRIuMAX " KiB (%s)\n", (uintmax_t)(auto_chunk_size >> 10), (pci.l1 + pci.l1d) != 0 ? "dynamically sized" : "default size");
+      if (pci != NULL) {
+        fprintf(stderr, "I/O chunk size: %" PRIuMAX " KiB (%s)\n", (uintmax_t)(auto_chunk_size >> 10), (pci->l1 + pci->l1d) != 0 ? "dynamically sized" : "default size");
+      }
   #else
       fprintf(stderr, "I/O chunk size: %" PRIuMAX " KiB (default size)\n", (uintmax_t)(auto_chunk_size >> 10));
   #endif /* __linux__ */
