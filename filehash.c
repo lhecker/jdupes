@@ -141,7 +141,7 @@ uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max
       break;
 #endif
     case HASH_ALGO_JODYHASH64:
-      if (unlikely(jc_block_hash(chunk, hash, bytes_to_read) != 0)) goto error_reading_file;
+      if (unlikely(jc_block_hash(NORMAL, chunk, hash, bytes_to_read) != 0)) goto error_reading_file;
       break;
     default:
       goto error_bad_hash_algo;

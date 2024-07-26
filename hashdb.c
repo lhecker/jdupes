@@ -99,21 +99,12 @@ int save_hash_database(const char * const restrict dbname, const int destroy)
     if (write_hashdb_entry(db, NULL, &cnt, destroy) != 0) goto error_hashdb_write;
     fclose(db);
     if (new_hashdb == 0) {
-<<<<<<< HEAD
-      errno = 0;
-      if (remove(dbname) != 0) {
-        if (errno != ENOENT) goto error_hashdb_remove;
-      }
-    }
-    if (rename(dbtemp, dbname) != 0) goto error_hashdb_rename;
-=======
       jc_errno = 0;
       if (jc_remove(dbname) != 0) {
         if (jc_errno != ENOENT) goto error_hashdb_remove;
       }
     }
     if (jc_rename(dbtemp, dbname) != 0) goto error_hashdb_rename;
->>>>>>> a8b0812 (hashdb: don't overwrite existing DB, use a temp file instead)
     LOUD(if (hashdb_dirty == 1) fprintf(stderr, "Wrote %" PRIu64 " items to hash databse '%s'\n", cnt, dbname);)
     hashdb_dirty = 0;
   }
@@ -525,8 +516,8 @@ static int get_path_hash(char *path, int pathlen, uint64_t *path_hash)
   if (pathlen < 1) pathlen = strlen(path);
   if ((uintptr_t)path & 0x0f) {
     strncpy((char *)&aligned_path, path, PATHBUF_SIZE);
-    retval = jc_block_hash((uint64_t *)aligned_path, path_hash, pathlen);
-  } else retval = jc_block_hash((uint64_t *)path, path_hash, pathlen);
+    retval = jc_block_hash(NORMAL, (uint64_t *)aligned_path, path_hash, strlen((char *)aligned_path));
+  } else retval = jc_block_hash(NORMAL, (uint64_t *)path, path_hash, strlen(path));
   return retval;
 }
 

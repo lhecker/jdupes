@@ -106,7 +106,7 @@ file_t *grokfile(const char * const restrict name, file_t * restrict * const res
 void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurse)
 {
   file_t * restrict newfile;
-  JC_DIRENT *dirinfo;
+  struct JC_DIRENT *dirinfo;
   size_t dirlen, dirpos;
   int i, single = 0, dotdir = 0;
   jdupes_ino_t inode;
