@@ -236,7 +236,7 @@ void version_text(int short_version)
   } else printf(" none");
   printf("\n");
   if (short_version) return;
-  printf("Copyright (C) 2015-2023 by Jody Bruchon and contributors\n\n");
+  printf("Copyright (C) 2015-2025 by Jody Bruchon and contributors\n\n");
   printf("Permission is hereby granted, free of charge, to any person obtaining a copy of\n");
   printf("this software and associated documentation files (the \"Software\"), to deal in\n");
   printf("the Software without restriction, including without limitation the rights to\n");
