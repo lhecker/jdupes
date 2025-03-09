@@ -136,12 +136,14 @@ static int write_hashdb_entry(FILE *db, hashdb_t *cur, uint64_t *cnt, const int 
   LOUD(fprintf(stderr, "write_hashdb_entry(%p, %p, %p, %d)", db, cur, cnt, destroy);)
   /* Write header and traverse array on first call */
   if (unlikely(cur == NULL)) {
-    gettimeofday(&tm, NULL);
-    snprintf(out, PATH_MAX + 127, "jdupes hashdb:%d,%d,%08lx\n", HASHDB_VER, hash_algo, (unsigned long)tm.tv_sec);
-    LOUD(fprintf(stderr, "write hashdb: %s", out);)
-    errno = 0;
-    if (db == NULL) printf("%s", out); else fputs(out, db);
-    if (errno != 0) return 1;
+    if (hashdb_dirty == 1) {
+      gettimeofday(&tm, NULL);
+      snprintf(out, PATHBUF_SIZE + 127, "jdupes hashdb:%d,%d,%08lx\n", HASHDB_VER, hash_algo, (unsigned long)tm.tv_sec);
+      LOUD(fprintf(stderr, "write hashdb: %s", out);)
+      errno = 0;
+      fputs(out, db);
+      if (errno != 0) return 1;
+    }
     /* Write out each hash bucket, skipping empty buckets */
     for (int i = 0; i < HT_SIZE; i++) {
       if (hashdb[i] == NULL) continue;
