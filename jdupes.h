@@ -48,24 +48,6 @@ extern "C" {
  #endif
 #endif /* _WIN32 || __MINGW32__ */
 
-/* Windows + Unicode compilation */
-#ifdef UNICODE
- #ifndef PATHBUF_SIZE
-  #ifndef WPATH_MAX
-   #define WPATH_MAX 8192
-  #endif
-  #define PATHBUF_SIZE WPATH_MAX
- #else
-  #ifndef WPATH_MAX
-   #define WPATH_MAX PATHBUF_SIZE
-  #endif
- #endif /* PATHBUF_SIZE */
- typedef wchar_t wpath_t[WPATH_MAX];
- #define M2W(a,b) MultiByteToWideChar(CP_UTF8, 0, a, -1, (LPWSTR)b, WPATH_MAX)
- #define W2M(a,b) WideCharToMultiByte(CP_UTF8, 0, a, -1, (LPSTR)b, WPATH_MAX, NULL, NULL)
- extern wpath_t wstr;
-#endif /* UNICODE */
-
 /* Maximum path buffer size to use; must be large enough for a path plus
  * any work that might be done to the array it's stored in. PATH_MAX is
  * not always true. Read this article on the false promises of PATH_MAX:
@@ -81,6 +63,18 @@ extern "C" {
   #warning "PATHBUF_SIZE is less than PATH_MAX"
  #endif
 #endif
+
+/* Windows + Unicode compilation */
+#ifdef UNICODE
+ typedef wchar_t wpath_t[PATHBUF_SIZE * 2 + 4];
+ #ifndef M2W
+  #define M2W(a,b) MultiByteToWideChar(CP_UTF8, 0, a, -1, (LPWSTR)b, PATHBUF_SIZE * 2)
+ #endif
+ #ifndef W2M
+  #define W2M(a,b) WideCharToMultiByte(CP_UTF8, 0, a, -1, (LPSTR)b, PATHBUF_SIZE * 2, NULL, NULL)
+ #endif
+ extern wpath_t wstr;
+#endif /* UNICODE */
 
 /* Debugging stats */
 #ifdef DEBUG
