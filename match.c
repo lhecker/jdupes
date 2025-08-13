@@ -231,7 +231,7 @@ file_t **checkmatch(filetree_t * restrict tree, file_t * const restrict file)
     if (ISFLAG(file->flags, FF_HASHDB_DIRTY)) {
       CLEARFLAG(file->flags, FF_HASHDB_DIRTY);
       add_hashdb_entry(NULL, 0, file);
-  }
+    }
     if (ISFLAG(tree->file->flags, FF_HASHDB_DIRTY)) {
       CLEARFLAG(tree->file->flags, FF_HASHDB_DIRTY);
       add_hashdb_entry(NULL, 0, tree->file);
