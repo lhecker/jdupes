@@ -154,6 +154,10 @@ display jdupes version and compilation feature flags
 create/use a hash database text file to speed up future runs by
 caching file hash data
 .TP
+.B -Y --hash-db-populate
+don't duplicate scan, only force-populate partial and full hashes in the
+hash database for all specified files and exit (requires -y)
+.TP
 .B -X --ext-filter=spec:info
 exclude/filter files based on specified criteria; general format:
 

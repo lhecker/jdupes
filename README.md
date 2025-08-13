@@ -152,6 +152,7 @@ parameter order
                         Use '-X help' for detailed extfilter help
  -y --hash-db=file      use a hash database text file to speed up repeat runs
                         Passing '-y .' will expand to  '-y jdupes_hashdb.txt'
+ -Y --hash-db-populate  force-populate the hash database (no dupe scan)
  -z --zero-match        consider zero-length files to be duplicates
  -Z --soft-abort        If the user aborts (i.e. CTRL-C) act on matches so far
                         You can send SIGUSR1 to the program to toggle this
@@ -343,6 +344,17 @@ database can reduce subsequent runs with hundreds of thousands of files that
 normally take a very long time to run down to the directory scanning time plus
 a couple of seconds. If the directory data is already in the OS disk cache,
 this can make subsequent runs with over 100K files finish in under one second.
+
+The `-Y`/`--hash-db-populate` option will forcibly pre-populate the specified
+hash database with partial and full file hashes for the specified files. This
+feature does not perform any duplicate scan work and ignores many options.
+Please note that this performs a ton of extra work for possibly no benefit.
+The hash database is really more of a "work cache" and is normally used to
+store work across invocations. Pre-populating defeats the purpose of using a
+duplicate scanner: reducing total work required to find duplicates. This may
+be useful in the future if jdupes adds the ability to do "offline scanning"
+where an existing hash database could be treated like a list of working files
+thus enabling duplicate scanning without having the actual files available.
 
 
 Hard and soft (symbolic) linking status symbols and behavior
