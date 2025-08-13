@@ -21,6 +21,17 @@
 #include "progress.h"
 
 
+#ifndef NO_HASHDB
+void add_file_to_hashdb(file_t *file)
+{
+  if (ISFLAG(file->flags, FF_HASHDB_DIRTY)) {
+    CLEARFLAG(file->flags, FF_HASHDB_DIRTY);
+    add_hashdb_entry(NULL, 0, file);
+  }
+  return;
+}
+#endif /* NO_HASHDB */
+
 void registerpair(file_t **matchlist, file_t *newmatch, int (*comparef)(file_t *f1, file_t *f2))
 {
   file_t *traverse;
@@ -228,14 +239,8 @@ file_t **checkmatch(filetree_t * restrict tree, file_t * const restrict file)
   /* Add to hash database */
 #ifndef NO_HASHDB
   if (ISFLAG(flags, F_HASHDB)) {
-    if (ISFLAG(file->flags, FF_HASHDB_DIRTY)) {
-      CLEARFLAG(file->flags, FF_HASHDB_DIRTY);
-      add_hashdb_entry(NULL, 0, file);
-    }
-    if (ISFLAG(tree->file->flags, FF_HASHDB_DIRTY)) {
-      CLEARFLAG(tree->file->flags, FF_HASHDB_DIRTY);
-      add_hashdb_entry(NULL, 0, tree->file);
-    }
+    add_file_to_hashdb(file);
+    add_file_to_hashdb(tree->file);
  }
 #endif
 
