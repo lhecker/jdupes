@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "jdupes.h"
+#include "loaddir.h"
 #include "libjodycode.h"
 #include "likely_unlikely.h"
 #include "hashdb.h"
@@ -445,6 +446,7 @@ int64_t load_hash_database(char *dbname)
     inode = strtoull(field, NULL, 16);
 
     path = buf + fixed_len;
+    path = remove_leading_dotslashes(path);
     path = strtok(path, "\n"); if (path == NULL) goto error_hashdb_line;
     pathlen = linelen - fixed_len - 1;
     if (pathlen > PATHBUF_SIZE) goto error_hashdb_line;

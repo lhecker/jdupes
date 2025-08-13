@@ -35,6 +35,28 @@
  const char dir_sep = '/';
 #endif /* _WIN32 || __MINGW32__ */
 
+
+char *remove_leading_dotslashes(char *path)
+{
+  char *origpath;
+
+  origpath = path;
+  while (*path == '.') {
+    if (*(path + 1) == '/' || *(path + 1) == '\\') {
+      path += 2;
+      while (*path == '/' || *path == '\\') path++;
+    } else break;
+    /* A bunch of dot-slashes should just become a dot */
+    if (unlikely(*path == '\0')) {
+      path = origpath;
+      *(path + 1) = '\0';
+      break;
+    }
+  }
+  return path;
+}
+
+
 static file_t *init_newfile(const size_t pathlen, file_t * restrict * const restrict filelistp)
 {
   file_t * const restrict newfile = (file_t *)malloc(sizeof(file_t));
@@ -86,14 +108,12 @@ file_t *grokfile(const char * const restrict name, file_t * restrict * const res
 #endif
 
 /* Load a directory's contents into the file tree, recursing as needed */
-void loaddir(const char * const restrict dir,
-                file_t * restrict * const restrict filelistp,
-                int recurse)
+void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurse)
 {
   file_t * restrict newfile;
   struct dirent *dirinfo;
   size_t dirlen, dirpos;
-  int i, single = 0;
+  int i, single = 0, dotdir = 0;
   jdupes_ino_t inode;
   dev_t device, n_device;
   jdupes_mode_t mode;
@@ -106,10 +126,13 @@ void loaddir(const char * const restrict dir,
 #endif
   static int sf_warning = 0; /* single file warning should only appear once */
 
-  if (unlikely(dir == NULL || filelistp == NULL)) jc_nullptr("loaddir()");
+  if (unlikely(dir == NULL || filelistp == NULL || *dir == '\0')) jc_nullptr("loaddir()");
   LOUD(fprintf(stderr, "loaddir: scanning '%s' (order %d, recurse %d)\n", dir, user_item_count, recurse));
 
   if (interrupt) return;
+
+  dir = remove_leading_dotslashes(dir);
+  if (*dir == '.' && *(dir + 1) == '\0') dotdir = 1;
 
   /* Get directory stats (or file stats if it's a file) */
   i = getdirstats(dir, &inode, &device, &mode);
@@ -191,14 +214,18 @@ void loaddir(const char * const restrict dir,
 
     /* Assemble the file's full path name, optimized to avoid strcat() */
     d_name_len = get_d_namlen(dirinfo);
-    dirpos = dirlen;
-    memcpy(tp, dir, dirpos + 1);
-    if (dirpos != 0 && tp[dirpos - 1] != dir_sep) {
-      tp[dirpos] = dir_sep;
-      dirpos++;
+    dirpos = 0;
+    /* Avoid prefixing '.\' if the dir spec is effectively '.' */
+    if (likely(dotdir == 0)) {
+      dirpos = dirlen;
+      memcpy(tp, dir, dirpos + 1);
+      if (dirpos != 0 && tp[dirpos - 1] != dir_sep) {
+        tp[dirpos] = dir_sep;
+        dirpos++;
+      }
+      if (unlikely(dirpos + d_name_len + 1 >= (PATHBUF_SIZE * 2))) goto error_overflow;
+      tp += dirpos;
     }
-    if (unlikely(dirpos + d_name_len + 1 >= (PATHBUF_SIZE * 2))) goto error_overflow;
-    tp += dirpos;
     memcpy(tp, dirinfo->d_name, d_name_len);
     tp += d_name_len;
     *tp = '\0';
