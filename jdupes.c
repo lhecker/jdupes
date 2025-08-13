@@ -562,6 +562,10 @@ int main(int argc, char **argv)
     }
   }
 
+#ifndef NO_HASHDB
+  if (ISFLAG(flags, F_HASHDB_POPULATE) && !ISFLAG(flags, F_HASHDB)) goto error_hashdb_populate;
+#endif
+
   if (optind >= argc) {
     fprintf(stderr, "no files or directories specified (use -h option for help)\n");
     exit(EXIT_FAILURE);
@@ -637,7 +641,6 @@ skip_partialonly_noise:
   signal(SIGINT, catch_interrupt);
 
 #ifndef NO_HASHDB
-  if (ISFLAG(flags, F_HASHDB_POPULATE) && !ISFLAG(flags, F_HASHDB)) goto error_hashdb_populate;
   if (ISFLAG(flags, F_HASHDB)) {
     hdbsize = load_hash_database(hashdb_name);
     if (hdbsize < 0) goto error_load_hashdb;
