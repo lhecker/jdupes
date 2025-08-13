@@ -547,6 +547,8 @@ these in the order they're performed is as follows:
 4. Entire files are hashed and compared which avoids comparing data directly
 5. Finally, actual file data is compared to verify that they are duplicates
 
+_Note: Step 5 is skipped using the (dangerous) `-Q`/`--quick` option._
+
 The vast majority of non-duplicate file pairs never make it past the partial
 (4 KiB) hashing step. This reduces the amount of data read from disk and time
 spent comparing things to the smallest amount possible.
