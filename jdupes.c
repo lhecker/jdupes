@@ -735,21 +735,22 @@ skip_partialonly_noise:
 
     LOUD(fprintf(stderr, "\nMAIN: current file: %s\n", curfile->d_name));
 
+    /* If -Y passed, populate the hash database with this file and do nothing else */
 #ifndef NO_HASHDB
     if (unlikely(ISFLAG(flags, F_HASHDB_POPULATE))) {
-      const uint64_t * restrict filehash;
+      const uint64_t * restrict pop_filehash;
       int pop_dirty;
       pop_dirty = 0;
       if (!ISFLAG(curfile->flags, FF_HASH_PARTIAL)) {
-        filehash = get_filehash(curfile, PARTIAL_HASH_SIZE, hash_algo);
-        if (filehash == NULL) goto skip_full_check;
-        curfile->filehash_partial = *filehash;
+        pop_filehash = get_pop_filehash(curfile, PARTIAL_HASH_SIZE, hash_algo);
+        if (pop_filehash == NULL) goto skip_full_check;
+        curfile->pop_filehash_partial = *pop_filehash;
 	pop_dirty = 1;
       }
       if (!ISFLAG(curfile->flags, FF_HASH_FULL)) {
-        filehash = get_filehash(curfile, 0, hash_algo);
-        if (filehash == NULL) goto skip_full_check;
-        curfile->filehash = *filehash;
+        pop_filehash = get_pop_filehash(curfile, 0, hash_algo);
+        if (pop_filehash == NULL) goto skip_full_check;
+        curfile->pop_filehash = *pop_filehash;
 	pop_dirty = 1;
       }
       if (pop_dirty == 1) {
@@ -760,6 +761,7 @@ skip_partialonly_noise:
     }
 #endif
 
+    /* Go through the tree seeing if anything matches the current file */
     if (!checktree) registerfile(&checktree, NONE, curfile);
     else match = checkmatch(checktree, curfile);
 
