@@ -744,13 +744,13 @@ skip_partialonly_noise:
       if (!ISFLAG(curfile->flags, FF_HASH_PARTIAL)) {
         pop_filehash = get_pop_filehash(curfile, PARTIAL_HASH_SIZE, hash_algo);
         if (pop_filehash == NULL) goto skip_full_check;
-        curfile->pop_filehash_partial = *pop_filehash;
+        curfile->filehash_partial = *pop_filehash;
 	pop_dirty = 1;
       }
       if (!ISFLAG(curfile->flags, FF_HASH_FULL)) {
         pop_filehash = get_pop_filehash(curfile, 0, hash_algo);
         if (pop_filehash == NULL) goto skip_full_check;
-        curfile->pop_filehash = *pop_filehash;
+        curfile->filehash = *pop_filehash;
 	pop_dirty = 1;
       }
       if (pop_dirty == 1) {
