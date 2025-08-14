@@ -551,7 +551,10 @@ int main(int argc, char **argv)
   }
 
 #ifndef NO_HASHDB
-  if (ISFLAG(flags, F_HASHDB_POPULATE) && !ISFLAG(flags, F_HASHDB)) goto error_hashdb_populate;
+  if (ISFLAG(flags, F_HASHDB_POPULATE)) {
+    if (!ISFLAG(flags, F_HASHDB)) goto error_hashdb_populate;
+    if (!ISFLAG(flags, F_HIDEPROGRESS)) fprintf(stderr, "Pre-populating hash database only. Duplicate detection is disabled.\n");
+  }
 #endif
 
   if (optind >= argc) {
