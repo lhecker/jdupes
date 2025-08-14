@@ -107,7 +107,8 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
   file_t * restrict newfile;
   struct JC_DIRENT *dirinfo;
   size_t dirlen, dirpos;
-  int i, single = 0, dotdir = 0;
+//  int i, single = 0, dotdir = 0;
+  int i, dotdir = 0;
   jdupes_ino_t inode;
   dev_t device, n_device;
   jdupes_mode_t mode;

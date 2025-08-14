@@ -77,17 +77,10 @@ int save_hash_database(const char * const restrict dbname, const int destroy)
   char *dbtemp;
 
   if (dbname == NULL) goto error_hashdb_null;
-  LOUD(fprintf(stderr, "save_hash_database('%s') dirty = %d\n", dbname, hashdb_dirty);)
+  LOUD(fprintf(stderr, "save_hash_database('%s') destroy = %d, dirty = %d\n", dbname, destroy, hashdb_dirty);)
   /* Don't save the hash database if it wasn't changed */
   if (hashdb_dirty == 0 && destroy == 0) return 0;
   if (hashdb_dirty == 1) {
-    dbtemp = malloc(strlen(dbname) + 5);
-    if (dbtemp == NULL) goto error_hashdb_alloc;
-    strcpy(dbtemp, dbname);
-    strcat(dbtemp, ".tmp");
-    /* Try to remove any existing temporary database, ignoring errors */
-    remove(dbtemp);
-    errno = 0;
     dbtemp = malloc(strlen(dbname) + 5);
     if (dbtemp == NULL) goto error_hashdb_alloc;
     strcpy(dbtemp, dbname);
