@@ -14,7 +14,6 @@
 #include "jdupes.h"
 #include "checks.h"
 #include "filestat.h"
-#include "get_d_namlen.h"
 #ifndef NO_HASHDB
  #include "hashdb.h"
 #endif
@@ -182,7 +181,7 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
     }
 
     /* Assemble the file's full path name, optimized to avoid strcat() */
-    d_name_len = get_d_namlen(dirinfo);
+    d_name_len = jc_get_d_namlen(dirinfo);
     dirpos = 0;
     /* Avoid prefixing '.\' if the dir spec is effectively '.' */
     if (likely(dotdir == 0)) {
@@ -217,7 +216,7 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
     }
 
     /* Optionally recurse directories, including symlinked ones if requested */
-    if (S_ISDIR(newfile->mode)) {
+    if (JC_S_ISDIR(newfile->mode)) {
       if (recurse) {
         /* --one-file-system - WARNING: this clobbers inode/mode */
         if (ISFLAG(flags, F_ONEFS)
@@ -250,7 +249,7 @@ void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurs
 #ifndef NO_SYMLINKS
       if (!ISFLAG(newfile->flags, FF_IS_SYMLINK) || (ISFLAG(newfile->flags, FF_IS_SYMLINK) && ISFLAG(flags, F_FOLLOWLINKS))) {
 #else
-      if (S_ISREG(newfile->mode)) {
+      if (JC_S_ISREG(newfile->mode)) {
 #endif
 #ifndef NO_HASHDB
         if (ISFLAG(flags, F_HASHDB)) read_hashdb_entry(newfile);

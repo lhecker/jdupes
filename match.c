@@ -206,7 +206,9 @@ file_t **checkmatch(filetree_t * restrict tree, file_t * const restrict file)
   cmpresult = check_conditions(tree->file, file);
   switch (cmpresult) {
 #ifndef NO_HARDLINKS
-    case 2: return &tree->file;  /* linked files + -H switch */
+    case 2:
+      cross_copy_hashes(tree->file, file);
+      return &tree->file;  /* linked files + -H switch */
     case -2: return NULL;  /* linked files, no -H switch */
 #endif
     case -3:    /* user order */
