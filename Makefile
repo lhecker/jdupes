@@ -207,6 +207,10 @@ ifndef IGNORE_NEARBY_JC
    $(error You must build libjodycode before building jdupes)
   endif
  endif
+ ifneq ("$(wildcard ../libjodycode/libjodycode.a)","")
+  $(info Overriding static library extension .lib for found extension .a)
+  LIB_EXT=.a
+ endif
  STATIC_LDFLAGS += ../libjodycode/libjodycode$(LIB_EXT)
  ifdef ON_WINDOWS
   DYN_LDFLAGS += -l:../libjodycode/libjodycode$(SO_EXT)
@@ -237,8 +241,8 @@ static: $(PROGRAM_NAME)
 static_stripped: $(PROGRAM_NAME) static static_jc
 	-strip $(PROGRAM_NAME)$(SUFFIX)
 
-$(PROGRAM_NAME): $(OBJS)
-	:
+$(PROGRAM_NAME): $(OBJS) libjodycode_vercheck
+	@:
 
 winres.o: winres.rc winres.manifest.xml
 	./tune_winres.sh
@@ -281,6 +285,19 @@ chrootpackage:
 
 package:
 	+./generate_packages.sh $(ARCH)
+
+.PHONY: libjodycode_vercheck ljc_vercheck
+ljc_vercheck:
+	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(STATIC_LDFLAGS) $(BDYNAMIC) -o ljc_vercheck$(SUFFIX)
+
+libjodycode_vercheck: ljc_vercheck
+	@echo
+	@./ljc_vercheck
+	@if [ `./ljc_vercheck$(SUFFIX) | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
+		then echo "The linked libjodycode feature level is too old. Get the latest libjodycode and try again."; \
+		else echo "The linked libjodycode feature level is OK."; \
+	fi
+	@echo
 
 libjodycode_hint:
 	$(info hint: if ../libjodycode is built but jdupes won't run, try doing 'make static_jc')
