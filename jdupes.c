@@ -160,9 +160,7 @@ int main(int argc, char **argv)
 #endif
 #ifndef NO_CHUNKSIZE
   static long manual_chunk_size = 0;
- #ifdef __linux__
   static struct jc_proc_cacheinfo *pci;
- #endif /* __linux__ */
 #endif /* NO_CHUNKSIZE */
 #ifdef ENABLE_DEDUPE
  #ifdef __linux__
@@ -258,7 +256,6 @@ int main(int argc, char **argv)
 #endif /* UNICODE */
 
 #ifndef NO_CHUNKSIZE
-#ifdef __linux__
   /* Auto-tune chunk size to be half of L1 data cache if possible */
   pci = jc_get_proc_cacheinfo(0);
   if (pci != NULL) {
@@ -270,7 +267,6 @@ int main(int argc, char **argv)
     if ((auto_chunk_size & 0x00000fffUL) != 0)
       auto_chunk_size = (auto_chunk_size + 0x00000fffUL) & 0x000ff000;
   }
-#endif /* __linux__ */
 #endif /* NO_CHUNKSIZE */
 
   /* Is stderr a terminal? If not, we won't write progress to it */
