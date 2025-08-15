@@ -90,7 +90,7 @@ int save_hash_database(const char * const restrict dbname, const int destroy)
     db = jc_fopen(dbtemp, JC_FILE_MODE_RW_SEQ);
     if (db == NULL) goto error_hashdb_open;
     if (write_hashdb_entry(db, NULL, &cnt, destroy) != 0) goto error_hashdb_write;
-    fclose(db);
+    jc_fclose(db);
     if (new_hashdb == 0) {
       jc_errno = 0;
       if (jc_remove(dbname) != 0) {
@@ -112,7 +112,7 @@ error_hashdb_open:
   return -2;
 error_hashdb_write:
   fprintf(stderr, "error: write failed to temp hashdb '%s': %s\n", dbtemp, strerror(errno));
-  fclose(db);
+  jc_fclose(db);
   return -3;
 error_hashdb_alloc:
   fprintf(stderr, "error: cannot allocate memory for temporary hashdb name\n");
@@ -446,7 +446,7 @@ int64_t load_hash_database(const char * const restrict dbname)
     entry->hashcount = hashcount;
   }
 
-  fclose(db);
+  jc_fclose(db);
   return linenum - 1;
 
 warn_hashdb_open:
@@ -455,30 +455,30 @@ warn_hashdb_open:
   return 0;
 error_hashdb_read:
   fprintf(stderr, "error reading hash database '%s': %s\n", dbname, strerror(errno));
-  fclose(db);
+  jc_fclose(db);
   return -1;
 error_hashdb_header:
   fprintf(stderr, "error in header of hash database '%s'\n", dbname);
-  fclose(db);
+  jc_fclose(db);
   return -2;
 error_hashdb_version:
   fprintf(stderr, "error: bad db version %u in hash database '%s'\n", db_ver, dbname);
-  fclose(db);
+  jc_fclose(db);
   return -3;
 error_hashdb_line:
   fprintf(stderr, "\nerror: bad line %" PRId64 " in hash database '%s':\n\n%s\n\n", linenum, dbname, line);
-  fclose(db);
+  jc_fclose(db);
   return -4;
 error_hashdb_add:
   fprintf(stderr, "error: internal failure allocating a hashdb entry\n");
-  fclose(db);
+  jc_fclose(db);
   return -5;
 error_hashdb_null:
   fprintf(stderr, "error: internal failure: NULL pointer for hashdb\n");
   return -6;
 warn_hashdb_algo:
   fprintf(stderr, "warning: hashdb uses a different hash algorithm than selected; not loading\n");
-  fclose(db);
+  jc_fclose(db);
   return -7;
 }
 

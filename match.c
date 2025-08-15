@@ -393,12 +393,12 @@ int confirmmatch(const char * const restrict file1, const char * const restrict 
   fp1 = jc_fopen(file1, JC_FILE_MODE_RDONLY_SEQ);
   fp2 = jc_fopen(file2, JC_FILE_MODE_RDONLY_SEQ);
   if (fp1 == NULL) {
-    if (fp2 != NULL) fclose(fp2);
+    if (fp2 != NULL) jc_fclose(fp2);
     LOUD(fprintf(stderr, "confirmmatch: warning: file open failed ('%s')\n", file1);)
     goto different;
   }
   if (fp2 == NULL) {
-    if (fp1 != NULL) fclose(fp1);
+    if (fp1 != NULL) jc_fclose(fp1);
     LOUD(fprintf(stderr, "confirmmatch: warning: file open failed ('%s')\n", file2);)
     goto different;
   }
@@ -436,6 +436,6 @@ different:
 
 finish_confirm:
 //  free(c1); free(c2);
-  fclose(fp1); fclose(fp2);
+  jc_fclose(fp1); jc_fclose(fp2);
   return retval;
 }

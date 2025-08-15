@@ -99,7 +99,7 @@ uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max
    * This is part of the filehash_partial skip optimization */
   if (ISFLAG(checkfile->flags, FF_HASH_PARTIAL)) {
     if (fseeko(file, PARTIAL_HASH_SIZE, SEEK_SET) == -1) {
-      fclose(file);
+      jc_fclose(file);
       fprintf(stderr, "\nerror seeking in file "); jc_fwprint(stderr, checkfile->d_name, 1);
       return NULL;
     }
@@ -164,7 +164,7 @@ uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max
     continue;
   }
 
-  fclose(file);
+  jc_fclose(file);
 
 #ifndef NO_XXHASH2
   if (algo == HASH_ALGO_XXHASH2_64) {
@@ -177,13 +177,13 @@ uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max
   return hash;
 error_reading_file:
   fprintf(stderr, "\nerror reading from file "); jc_fwprint(stderr, checkfile->d_name, 1);
-  fclose(file);
+  jc_fclose(file);
   return NULL;
 error_bad_hash_algo:
   if ((hash_algo > HASH_ALGO_COUNT) || (hash_algo < 0))
     fprintf(stderr, "\nerror: requested hash algorithm %d is not available", hash_algo);
   else
     fprintf(stderr, "\nerror: requested hash algorithm %s [%d] is not available", hash_algo_list[hash_algo], hash_algo);
-  fclose(file);
+  jc_fclose(file);
   return NULL;
 }
