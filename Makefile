@@ -275,7 +275,9 @@ stripped: $(PROGRAM_NAME) dynamic_jc
 	strip $(PROGRAM_NAME)$(SUFFIX)
 
 clean:
-	$(RM) $(OBJS) $(OBJS_CLEAN) build_date.h $(PROGRAM_NAME)$(SUFFIX) hashdb_util$(SUFFIX) *~ .*.un~ *.gcno *.gcda *.gcov *.obj
+	$(RM) $(OBJS) $(OBJS_CLEAN) build_date.h \
+		$(PROGRAM_NAME)$(SUFFIX) hashdb_util$(SUFFIX) ljc_vercheck$(SUFFIX) \
+		*~ .*.un~ *.gcno *.gcda *.gcov *.obj
 
 distclean: clean
 	$(RM) -rf *.pkg.tar* jdupes-*-*/ jdupes-*-*.zip
