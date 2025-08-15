@@ -1,3 +1,9 @@
+jdupes 1.29.0 (2025-08-15)
+- Switch to libjodycode 4.0 API
+- Add -Y/--hash-db-populate to force-populate a hash database
+- Strip leading dot-slashes from file lists and hash database entries
+- Builds now run a libjodycode version check
+
 jdupes 1.28.0 (2024-07-27)
 
 - Backport safety fixes from v2 development
