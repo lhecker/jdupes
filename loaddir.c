@@ -30,18 +30,41 @@
  const char dir_sep = '/';
 #endif /* _WIN32 || __MINGW32__ */
 
-static file_t *init_newfile(const size_t len, file_t * restrict * const restrict filelistp)
+
+char *remove_leading_dotslashes(char *path)
+{
+  char *origpath;
+
+  origpath = path;
+  while (*path == '.') {
+    if (*(path + 1) == '/' || *(path + 1) == '\\') {
+      path += 2;
+      while (*path == '/' || *path == '\\') path++;
+    } else break;
+    /* A bunch of dot-slashes should just become a dot */
+    if (unlikely(*path == '\0')) {
+      path = origpath;
+      *(path + 1) = '\0';
+      break;
+    }
+  }
+  return path;
+}
+
+
+static file_t *init_newfile(const size_t pathlen, file_t * restrict * const restrict filelistp)
 {
   file_t * const restrict newfile = (file_t *)calloc(1, sizeof(file_t));
 
   if (unlikely(!newfile)) jc_oom("init_newfile() file structure");
   if (unlikely(!filelistp)) jc_nullptr("init_newfile() filelistp");
 
-  LOUD(fprintf(stderr, "init_newfile(len %" PRIuMAX ", filelistp %p)\n", (uintmax_t)len, filelistp));
+  LOUD(fprintf(stderr, "init_newfile(len %" PRIuMAX ", filelistp %p)\n", (uintmax_t)pathlen, filelistp));
 
-  newfile->d_name = (char *)malloc(EXTEND64(len));
+  newfile->d_name = (char *)malloc(EXTEND64(pathlen + 1));
   if (!newfile->d_name) jc_oom("init_newfile() filename");
 
+  newfile->d_name_len = pathlen;
   newfile->next = *filelistp;
 #ifndef NO_USER_ORDER
   newfile->user_order = user_item_count;
@@ -79,26 +102,26 @@ file_t *grokfile(const char * const restrict name, file_t * restrict * const res
 #endif
 
 /* Load a directory's contents into the file tree, recursing as needed */
-void loaddir(char * const restrict dir,
-                file_t * restrict * const restrict filelistp,
-                int recurse)
+void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurse)
 {
   file_t * restrict newfile;
   struct JC_DIRENT *dirinfo;
   size_t dirlen, dirpos;
-  int i;
-//  single = 0;
+//  int i, single = 0, dotdir = 0;
+  int i, dotdir = 0;
   jdupes_ino_t inode;
   dev_t device, n_device;
   jdupes_mode_t mode;
   JC_DIR *cd;
   static int sf_warning = 0; /* single file warning should only appear once */
 
-  if (unlikely(dir == NULL || filelistp == NULL)) jc_nullptr("loaddir()");
+  if (unlikely(dir == NULL || filelistp == NULL || *dir == '\0')) jc_nullptr("loaddir()");
   LOUD(fprintf(stderr, "loaddir: scanning '%s' (order %d, recurse %d)\n", dir, user_item_count, recurse));
 
   if (unlikely(interrupt != 0)) return;
 
+  dir = remove_leading_dotslashes(dir);
+  if (*dir == '.' && *(dir + 1) == '\0') dotdir = 1;
   /* Convert forward slashes to backslashes if on Windows */
   jc_slash_convert(dir);
 
@@ -159,25 +182,29 @@ void loaddir(char * const restrict dir,
     }
 
     /* Assemble the file's full path name, optimized to avoid strcat() */
-    dirpos = dirlen;
-    d_name_len = strlen(dirinfo->d_name);
-    memcpy(tp, dir, dirpos + 1);
-    if (dirpos != 0 && tp[dirpos - 1] != dir_sep) {
-      tp[dirpos] = dir_sep;
-      dirpos++;
+    d_name_len = jc_get_d_namlen(dirinfo);
+    dirpos = 0;
+    /* Avoid prefixing '.\' if the dir spec is effectively '.' */
+    if (likely(dotdir == 0)) {
+      dirpos = dirlen;
+      memcpy(tp, dir, dirpos + 1);
+      if (dirpos != 0 && tp[dirpos - 1] != dir_sep) {
+        tp[dirpos] = dir_sep;
+        dirpos++;
+      }
+      if (unlikely(dirpos + d_name_len + 1 >= (JC_PATHBUF_SIZE * 2))) goto error_overflow;
+      tp += dirpos;
     }
-    if (unlikely(dirpos + d_name_len + 1 >= (PATHBUF_SIZE * 2))) goto error_overflow;
-    tp += dirpos;
     memcpy(tp, dirinfo->d_name, d_name_len);
     tp += d_name_len;
     *tp = '\0';
-    d_name_len++;
+    d_name_len += dirpos;
 
     /* Allocate the file_t and the d_name entries */
-    newfile = init_newfile(dirpos + d_name_len + 2, filelistp);
+    newfile = init_newfile(d_name_len, filelistp);
 
     tp = tempname;
-    memcpy(newfile->d_name, tp, dirpos + d_name_len);
+    memcpy(newfile->d_name, tp, d_name_len + 1);
 
     /*** WARNING: tempname global gets reused by check_singlefile here! ***/
 
@@ -257,6 +284,6 @@ error_cd:
   exit_status = EXIT_FAILURE;
   return;
 error_overflow:
-  fprintf(stderr, "\nerror: a path overflowed (longer than PATHBUF_SIZE) cannot continue\n");
+  fprintf(stderr, "\nerror: a path overflowed (longer than JC_PATHBUF_SIZE) cannot continue\n");
   exit(EXIT_FAILURE);
 }

@@ -239,8 +239,8 @@ stop_scanning:
 #if defined NO_HARDLINKS && defined NO_SYMLINKS
       /* label not needed */
 #else
-skip_deletion:
 #endif /* defined NO_HARDLINKS && defined NO_SYMLINKS */
+skip_deletion:
       printf("\n");
     }
   }

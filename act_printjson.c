@@ -74,7 +74,7 @@ static void json_escape(const char * restrict string, char * restrict const targ
 {
   uint32_t curr = 0;
   char *escaped = target;
-  while (*string != '\0' && (escaped - target) < (PATHBUF_SIZE * 2 - 1)) {
+  while (*string != '\0' && (escaped - target) < (JC_PATHBUF_SIZE * 2 - 1)) {
     switch (*string) {
       case '\"':
       case '\\':
@@ -105,8 +105,8 @@ void printjson(file_t * restrict files, const int argc, char **argv)
 {
   file_t * restrict tmpfile;
   int arg = 0, comma = 0, len = 0;
-  char *temp = (char *)malloc(PATHBUF_SIZE * 2);
-  char *temp2 = (char *)malloc(PATHBUF_SIZE * 2);
+  char *temp = (char *)malloc(JC_PATHBUF_SIZE * 2);
+  char *temp2 = (char *)malloc(JC_PATHBUF_SIZE * 2);
   char *temp_insert = temp;
 
   LOUD(fprintf(stderr, "printjson: %p\n", files));

@@ -1,5 +1,5 @@
 /* jdupes duplicate file finder utility
- * Copyright (C) 2015-2023 by Jody Bruchon <jody@jodybruchon.com>
+ * Copyright (C) 2015-2025 by Jody Bruchon <jody@jodybruchon.com>
  * Licensed under The MIT License; see LICENSE.txt for details */
 
 #include <stdio.h>
@@ -128,7 +128,7 @@ unsigned int user_item_count = 1;
 int sort_direction = 1;
 
 /* For path name mangling */
-char tempname[PATHBUF_SIZE * 2];
+char tempname[JC_PATHBUF_SIZE * 2];
 
 /* Strings used in multiple places */
 const char *s_interrupt = "\nStopping file scan due to user abort\n";
@@ -219,6 +219,7 @@ int main(int argc, char **argv)
     { "version", 0, 0, 'v' },
     { "ext-filter", 1, 0, 'X' },
     { "hash-db", 1, 0, 'y' },
+    { "hash-db-populate", 1, 0, 'Y' },
     { "soft-abort", 0, 0, 'Z' },
     { "zero-match", 0, 0, 'z' },
     { NULL, 0, 0, 0 }
@@ -228,7 +229,7 @@ int main(int argc, char **argv)
  #define GETOPT getopt
 #endif
 
-#define GETOPT_STRING "@019ABC:DdEefHhIijKLlMmNnOo:P:pQqRrSsTtUuVvX:y:Zz"
+#define GETOPT_STRING "@019ABC:DdEefHhIijKLlMmNnOo:P:pQqRrSsTtUuVvX:Yy:Zz"
 
   /* Verify libjodycode compatibility before going further */
   if (libjodycode_version_check(1, 0) != 0) {
@@ -523,6 +524,9 @@ int main(int argc, char **argv)
       if (strcmp(optarg, ".") == 0) strcpy(hashdb_name, "jdupes_hashdb.txt");
       else strcpy(hashdb_name, optarg);
       break;
+    case 'Y':
+      SETFLAG(flags, F_HASHDB_POPULATE);
+      break;
 #endif /* NO_HASHDB */
     case 'z':
       SETFLAG(flags, F_INCLUDEEMPTY);
@@ -545,6 +549,13 @@ int main(int argc, char **argv)
       exit(EXIT_FAILURE);
     }
   }
+
+#ifndef NO_HASHDB
+  if (ISFLAG(flags, F_HASHDB_POPULATE)) {
+    if (!ISFLAG(flags, F_HASHDB)) goto error_hashdb_populate;
+    if (!ISFLAG(flags, F_HIDEPROGRESS)) fprintf(stderr, "Pre-populating hash database only. Duplicate detection is disabled.\n");
+  }
+#endif
 
   if (optind >= argc) {
     fprintf(stderr, "no files or directories specified (use -h option for help)\n");
@@ -709,6 +720,33 @@ skip_partialonly_noise:
 
     LOUD(fprintf(stderr, "\nMAIN: current file: %s\n", curfile->d_name));
 
+    /* If -Y passed, populate the hash database with this file and do nothing else */
+#ifndef NO_HASHDB
+    if (unlikely(ISFLAG(flags, F_HASHDB_POPULATE))) {
+      const uint64_t * restrict pop_filehash;
+      int pop_dirty;
+      pop_dirty = 0;
+      if (!ISFLAG(curfile->flags, FF_HASH_PARTIAL)) {
+        pop_filehash = get_filehash(curfile, PARTIAL_HASH_SIZE, hash_algo);
+        if (pop_filehash == NULL) goto skip_full_check;
+        curfile->filehash_partial = *pop_filehash;
+	pop_dirty = 1;
+      }
+      if (!ISFLAG(curfile->flags, FF_HASH_FULL)) {
+        pop_filehash = get_filehash(curfile, 0, hash_algo);
+        if (pop_filehash == NULL) goto skip_full_check;
+        curfile->filehash = *pop_filehash;
+	pop_dirty = 1;
+      }
+      if (pop_dirty == 1) {
+        SETFLAG(curfile->flags, FF_HASH_PARTIAL | FF_HASH_FULL | FF_HASHDB_DIRTY);
+        add_file_to_hashdb(curfile);
+      }
+      goto skip_full_check;
+    }
+#endif
+
+    /* Go through the tree seeing if anything matches the current file */
     if (!checktree) registerfile(&checktree, NONE, curfile);
     else match = checkmatch(checktree, curfile);
 
@@ -768,6 +806,10 @@ skip_file_scan:
   signal(SIGINT, SIG_DFL);
   if (!ISFLAG(flags, F_HIDEPROGRESS)) jc_stop_alarm();
 
+#ifndef NO_HASHDB
+  if (ISFLAG(flags, F_HASHDB_POPULATE)) goto skip_all_actions;
+#endif
+
   if (files == NULL) {
     printf("%s", s_no_dupes);
     exit(exit_status);
@@ -798,7 +840,9 @@ skip_file_scan:
     summarizematches(files);
   }
 
+
 #ifndef NO_HASHDB
+skip_all_actions:
   if (ISFLAG(flags, F_HASHDB)) {
     hdbout = save_hash_database(hashdb_name, 1);
     if (!ISFLAG(flags, F_HIDEPROGRESS)) {
@@ -848,6 +892,9 @@ error_optarg:
 #ifndef NO_HASHDB
 error_load_hashdb:
   free(hashdb_name);
+  exit(EXIT_FAILURE);
+error_hashdb_populate:
+  fprintf(stderr, "error: -Y/--hash-db-populate requires the -y/--hash-db option\n");
   exit(EXIT_FAILURE);
 #endif
 interrupt_exit:

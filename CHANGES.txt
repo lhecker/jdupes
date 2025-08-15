@@ -1,3 +1,11 @@
+jdupes 1.28.0 (2024-07-27)
+
+- Backport safety fixes from v2 development
+- Fix crash on new hashdb creation
+- Name length performance boost backported from libjodycode v4 development
+- Heavy safeguards added to interactive deletion input processing
+- Hash db not overwritten to avoid loss of the db in low disk space conditions
+
 jdupes 1.27.3 (2023-08-26)
 
 - Fix crash on Linux when opening a file for hashing fails

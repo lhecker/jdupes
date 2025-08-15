@@ -26,6 +26,7 @@ extern "C" {
 #include <limits.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include "libjodycode.h"
 
 /* Some types are different on Windows */
 #if defined _WIN32 || defined __MINGW32__
@@ -42,28 +43,17 @@ extern "C" {
  #endif
 #endif /* _WIN32 || __MINGW32__ */
 
-#ifndef PATHBUF_SIZE
- #ifdef UNICODE
-  #define PATHBUF_SIZE 8192
- #else
-  #define PATHBUF_SIZE 4096
- #endif /* UNICODE */
-#endif /* PATHBUF_SIZE */
-
-/* Maximum path buffer size to use; must be large enough for a path plus
- * any work that might be done to the array it's stored in. PATH_MAX is
- * not always true. Read this article on the false promises of PATH_MAX:
- * http://insanecoding.blogspot.com/2007/11/pathmax-simply-isnt.html
- * Windows + Unicode needs a lot more space than UTF-8 in Linux/Mac OS X
- */
-/* Complain if PATHBUF_SIZE is too small */
-#ifdef PATH_MAX
- #if PATHBUF_SIZE < PATH_MAX
-  #if !defined LOW_MEMORY && !defined BARE_BONES
-   #warning "PATHBUF_SIZE is less than PATH_MAX"
-  #endif
+/* Windows + Unicode compilation */
+#ifdef UNICODE
+ typedef wchar_t wpath_t[JC_PATHBUF_SIZE * 2 + 4];
+ #ifndef M2W
+  #define M2W(a,b) MultiByteToWideChar(CP_UTF8, 0, a, -1, (LPWSTR)b, JC_PATHBUF_SIZE * 2)
  #endif
-#endif
+ #ifndef W2M
+  #define W2M(a,b) WideCharToMultiByte(CP_UTF8, 0, a, -1, (LPSTR)b, JC_PATHBUF_SIZE * 2, NULL, NULL)
+ #endif
+ extern wpath_t wstr;
+#endif /* UNICODE */
 
 /* Debugging stats */
 #ifdef DEBUG
@@ -125,7 +115,7 @@ extern uintmax_t comparisons;
 #define HASH_COMPARE(a,b) ((a > b) ? 1:((a == b) ? 0:-1))
 
 /* Extend an allocation length to the next 64-bit (8-byte) boundary */
-#define EXTEND64(a) ((a & 0x7) > 0 ? ((a & (~0x7)) + 8) : a)
+#define EXTEND64(a) (((a) & 0x7) > 0 ? (((a) & (~0x7)) + 8) : (a))
 
 /* Behavior modification flags */
 extern uint64_t flags, a_flags, p_flags;
@@ -151,6 +141,7 @@ extern uint64_t flags, a_flags, p_flags;
 #define F_SKIPHASH		(1ULL << 19)
 #define F_BENCHMARKSTOP		(1ULL << 29)
 #define F_HASHDB		(1ULL << 30)
+#define F_HASHDB_POPULATE	(1ULL << 31)
 
 #define F_LOUD			(1ULL << 62)
 #define F_DEBUG			(1ULL << 63)
@@ -176,6 +167,7 @@ extern uint64_t flags, a_flags, p_flags;
 #define FF_HAS_DUPES		(1U << 3)
 #define FF_IS_SYMLINK		(1U << 4)
 #define FF_NOT_UNIQUE		(1U << 5)
+#define FF_HASHDB_DIRTY		(1U << 6)
 
 /* Extra print flags */
 #define PF_PARTIAL		(1U << 0)
@@ -196,6 +188,7 @@ typedef struct _file {
   struct _file *duplicates;
   struct _file *next;
   char *d_name;
+  int d_name_len;
   uint64_t filehash_partial;
   uint64_t filehash;
   jdupes_ino_t inode;

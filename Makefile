@@ -2,6 +2,7 @@
 
 # Default flags to pass to the C compiler (can be overridden)
 CFLAGS ?= -O2 -g
+#CFLAGS ?= -Og -g3
 
 # PREFIX determines where files will be installed. Common examples
 # include "/usr" or "/usr/local".
@@ -52,7 +53,7 @@ endif
 ifdef BARE_BONES
  LOW_MEMORY = 1
  COMPILER_OPTIONS += -DNO_DELETE -DNO_TRAVCHECK -DBARE_BONES -DNO_ERRORONDUPE
- COMPILER_OPTIONS += -DNO_HASHDB -DNO_HELPTEXT -DCHUNK_SIZE=4096 -DPATHBUF_SIZE=1024
+ COMPILER_OPTIONS += -DNO_HASHDB -DNO_HELPTEXT -DCHUNK_SIZE=4096
 endif
 
 # Low memory mode
@@ -101,8 +102,7 @@ ifdef ON_WINDOWS
  SUFFIX=.exe
  SO_EXT=.dll
  LIB_EXT=.lib
-# COMPILER_OPTIONS += -D__USE_MINGW_ANSI_STDIO=1
- COMPILER_OPTIONS += -DON_WINDOWS=1
+ COMPILER_OPTIONS += -D__USE_MINGW_ANSI_STDIO=1 -DON_WINDOWS=1
  ifeq ($(UNAME_S), MINGW32_NT-5.1)
   OBJS += winres_xp.o
  else
@@ -234,7 +234,7 @@ static_jc: $(PROGRAM_NAME)
 static: $(PROGRAM_NAME)
 	$(CC) $(CFLAGS) $(OBJS) -static $(LDFLAGS) $(STATIC_LDFLAGS) -o $(PROGRAM_NAME)$(SUFFIX)
 
-static_stripped: $(PROGRAM_NAME) static
+static_stripped: $(PROGRAM_NAME) static static_jc
 	-strip $(PROGRAM_NAME)$(SUFFIX)
 
 $(PROGRAM_NAME): $(OBJS)
@@ -267,7 +267,7 @@ uninstall: uninstalldirs
 test:
 	./test.sh
 
-stripped: $(PROGRAM_NAME)
+stripped: $(PROGRAM_NAME) dynamic_jc
 	strip $(PROGRAM_NAME)$(SUFFIX)
 
 clean:

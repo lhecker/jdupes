@@ -154,6 +154,10 @@ display jdupes version and compilation feature flags
 create/use a hash database text file to speed up future runs by
 caching file hash data
 .TP
+.B -Y --hash-db-populate
+don't duplicate scan, only force-populate partial and full hashes in the
+hash database for all specified files and exit (requires -y)
+.TP
 .B -X --ext-filter=spec:info
 exclude/filter files based on specified criteria; general format:
 
@@ -381,7 +385,7 @@ and was forked from fdupes 1.51 by Adrian Lopez <adrian2@caribe.net>
 
 MIT License
 
-Copyright (c) 2015-2023 Jody Lee Bruchon <jody@jodybruchon.com>
+Copyright (c) 2015-2025 Jody Lee Bruchon <jody@jodybruchon.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

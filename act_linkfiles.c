@@ -78,7 +78,7 @@ void linkfiles(file_t *files, const int linktype, const int only_current)
   static int i, success;
 #ifndef NO_SYMLINKS
   static unsigned int symsrc;
-  static char rel_path[PATHBUF_SIZE];
+  static char rel_path[JC_PATHBUF_SIZE];
 #endif
 #if defined ON_WINDOWS || defined ENABLE_CLONEFILE_LINK
   static struct JC_STAT s;
@@ -279,7 +279,7 @@ void linkfiles(file_t *files, const int linktype, const int only_current)
 
         /* Make sure the name will fit in the buffer before trying */
         name_len = strlen(dupelist[x]->d_name) + 14;
-        if (name_len > PATHBUF_SIZE) continue;
+        if (name_len > JC_PATHBUF_SIZE) continue;
         /* Assemble a temporary file name */
         strcpy(tempname, dupelist[x]->d_name);
         strcat(tempname, ".__jdupes__.tmp");

@@ -8,8 +8,9 @@
 extern "C" {
 #endif
 
+char *remove_leading_dotslashes(char *path);
 //file_t *grokfile(const char * const restrict name, file_t * restrict * const restrict filelistp);
-void loaddir(char * const restrict dir, file_t * restrict * const restrict filelistp, int recurse);
+void loaddir(char *dir, file_t * restrict * const restrict filelistp, int recurse);
 
 #ifdef __cplusplus
 }

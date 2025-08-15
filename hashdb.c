@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "jdupes.h"
+#include "loaddir.h"
 #include "libjodycode.h"
 #include "likely_unlikely.h"
 #include "hashdb.h"
@@ -27,6 +28,10 @@
 #endif
 #define HT_MASK (HT_SIZE - 1)
 
+#if defined(__GNU__) && !defined(PATH_MAX)
+ #define PATH_MAX 1024
+#endif
+
 static hashdb_t *hashdb[HT_SIZE];
 static int hashdb_init = 0;
 static int hashdb_algo = 0;
@@ -37,7 +42,7 @@ static int new_hashdb = 0;
 enum pivot { PIVOT_LEFT, PIVOT_RIGHT };
 
 static int write_hashdb_entry(FILE *db, hashdb_t *cur, uint64_t *cnt, const int destroy);
-static int get_path_hash(char *path, uint64_t *path_hash);
+static int get_path_hash(char *path, int pathlen, uint64_t *path_hash);
 
 
 #if 0
@@ -72,11 +77,10 @@ int save_hash_database(const char * const restrict dbname, const int destroy)
   char *dbtemp;
 
   if (dbname == NULL) goto error_hashdb_null;
-  LOUD(fprintf(stderr, "save_hash_database('%s') dirty = %d\n", dbname, hashdb_dirty);)
+  LOUD(fprintf(stderr, "save_hash_database('%s') destroy = %d, dirty = %d\n", dbname, destroy, hashdb_dirty);)
   /* Don't save the hash database if it wasn't changed */
   if (hashdb_dirty == 0 && destroy == 0) return 0;
   if (hashdb_dirty == 1) {
-    errno = 0;
     dbtemp = malloc(strlen(dbname) + 5);
     if (dbtemp == NULL) goto error_hashdb_alloc;
     strcpy(dbtemp, dbname);
@@ -119,7 +123,7 @@ error_hashdb_remove:
   return -5;
 error_hashdb_rename:
   fprintf(stderr, "error: cannot rename temporary hashdb '%s' to '%s'; leaving it alone: %s\n", dbtemp, dbname, strerror(errno));
-  return -5;
+  return -6;
 }
 
 
@@ -127,17 +131,19 @@ static int write_hashdb_entry(FILE *db, hashdb_t *cur, uint64_t *cnt, const int 
 {
   struct timeval tm;
   int err = 0;
-  static char out[PATHBUF_SIZE + 128];
+  static char out[JC_PATHBUF_SIZE + 128];
 
   LOUD(fprintf(stderr, "write_hashdb_entry(%p, %p, %p, %d)", db, cur, cnt, destroy);)
   /* Write header and traverse array on first call */
   if (unlikely(cur == NULL)) {
-    gettimeofday(&tm, NULL);
-    snprintf(out, PATHBUF_SIZE + 127, "jdupes hashdb:%d,%d,%08lx\n", HASHDB_VER, hash_algo, (unsigned long)tm.tv_sec);
-    LOUD(fprintf(stderr, "write hashdb: %s", out);)
-    errno = 0;
-    if (db == NULL) printf("%s", out); else fputs(out, db);
-    if (errno != 0) return 1;
+    if (hashdb_dirty == 1) {
+      gettimeofday(&tm, NULL);
+      snprintf(out, JC_PATHBUF_SIZE + 127, "jdupes hashdb:%d,%d,%08lx\n", HASHDB_VER, hash_algo, (unsigned long)tm.tv_sec);
+      LOUD(fprintf(stderr, "write hashdb: %s", out);)
+      errno = 0;
+      fputs(out, db);
+      if (errno != 0) return 1;
+    }
     /* Write out each hash bucket, skipping empty buckets */
     for (int i = 0; i < HT_SIZE; i++) {
       if (hashdb[i] == NULL) continue;
@@ -152,8 +158,8 @@ static int write_hashdb_entry(FILE *db, hashdb_t *cur, uint64_t *cnt, const int 
   }
 
   /* Write out this node if it wasn't invalidated */
-  if (cur->hashcount != 0) {
-    snprintf(out, PATHBUF_SIZE + 127, "%u,%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%s\n",
+  if (hashdb_dirty == 1 && cur->hashcount != 0) {
+    snprintf(out, JC_PATHBUF_SIZE + 127, "%u,%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%s\n",
       cur->hashcount, cur->partialhash, cur->fullhash, (uint64_t)cur->mtime, (uint64_t)cur->size, (uint64_t)cur->inode, cur->path);
     (*cnt)++;
     LOUD(fprintf(stderr, "write hashdb: %s", out);)
@@ -241,12 +247,13 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
   if (unlikely((in_path == NULL && check == NULL) || (check != NULL && check->d_name == NULL))) return NULL;
 
   /* Get path hash and length from supplied path; use hash to choose the bucket */
-  if (in_path == NULL) path = check->d_name;
-  else path = in_path;
+  if (in_path == NULL) {
+    path = check->d_name;
+    pathlen = check->d_name_len;
+  } else path = in_path;
   if (pathlen == 0) pathlen = strlen(path);
-  if (get_path_hash(path, &path_hash) != 0) return NULL;
+  if (get_path_hash(path, pathlen, &path_hash) != 0) return NULL;
   bucket = path_hash & HT_MASK;
-
 
   if (hashdb[bucket] == NULL) {
     file = alloc_hashdb_node(pathlen);
@@ -259,7 +266,7 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
     while (1) {
       /* If path is set then this entry may already exist and we need to check */
       if (check != NULL && cur->path != NULL) {
-        if (cur->path_hash == path_hash && strcmp(cur->path, check->d_name) == 0) {
+        if (cur->path_hash == path_hash && cur->pathlen == check->d_name_len && memcmp(cur->path, check->d_name, cur->pathlen) == 0) {
           /* Should we invalidate this entry? */
           exclude = 0;
           if (cur->mtime != check->mtime) exclude |= 1;
@@ -315,6 +322,7 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
     hashdb_dirty = 1;
     file->path_hash = path_hash;
     file->path = (char *)((uintptr_t)file + (uintptr_t)sizeof(hashdb_t));
+    file->pathlen = pathlen;
     memcpy(file->path, check->d_name, pathlen + 1);
     *(file->path + pathlen) = '\0';
     file->size = check->size;
@@ -338,8 +346,8 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
 int64_t load_hash_database(const char * const restrict dbname)
 {
   FILE *db;
-  char line[PATHBUF_SIZE + 128];
-  char buf[PATHBUF_SIZE + 128];
+  char line[JC_PATHBUF_SIZE + 128];
+  char buf[JC_PATHBUF_SIZE + 128];
   char *field, *temp;
   int db_ver;
   unsigned int fixed_len;
@@ -356,7 +364,7 @@ int64_t load_hash_database(const char * const restrict dbname)
   if (db == NULL) goto warn_hashdb_open;
 
   /* Read header line */
-  if ((fgets(buf, PATHBUF_SIZE + 127, db) == NULL) || (ferror(db) != 0)) {
+  if ((fgets(buf, JC_PATHBUF_SIZE + 127, db) == NULL) || (ferror(db) != 0)) {
     if (errno == 0) goto warn_hashdb_open;  // empty file = make new DB
     goto error_hashdb_read;
   } else if (!ISFLAG(flags, F_HIDEPROGRESS)) fprintf(stderr, "Loading hash database...");
@@ -392,12 +400,12 @@ int64_t load_hash_database(const char * const restrict dbname)
     jdupes_ino_t inode;
 
     errno = 0;
-    if ((fgets(line, PATHBUF_SIZE + 128, db) == NULL)) {
+    if ((fgets(line, JC_PATHBUF_SIZE + 128, db) == NULL)) {
       if (ferror(db) != 0) goto error_hashdb_read;
       break;
     }
     LOUD(fprintf(stderr, "read hashdb: %s", line);)
-    strncpy(buf, line, PATHBUF_SIZE + 128);
+    strncpy(buf, line, JC_PATHBUF_SIZE + 128);
     linenum++;
     linelen = (int64_t)strlen(buf);
     if (linelen < fixed_len + 1) goto error_hashdb_line;
@@ -420,9 +428,10 @@ int64_t load_hash_database(const char * const restrict dbname)
     inode = strtoull(field, NULL, 16);
 
     path = buf + fixed_len;
+    path = remove_leading_dotslashes(path);
     path = strtok(path, "\n"); if (path == NULL) goto error_hashdb_line;
     pathlen = linelen - fixed_len + 1;
-    if (pathlen > PATHBUF_SIZE) goto error_hashdb_line;
+    if (pathlen > JC_PATHBUF_SIZE) goto error_hashdb_line;
     *(path + pathlen) = '\0';
 
     /* Allocate and populate a tree entry */
@@ -443,7 +452,6 @@ int64_t load_hash_database(const char * const restrict dbname)
 warn_hashdb_open:
   fprintf(stderr, "Creating a new hash database '%s'\n", dbname);
   new_hashdb = 1;
-  fclose(db);
   return 0;
 error_hashdb_read:
   fprintf(stderr, "error reading hash database '%s': %s\n", dbname, strerror(errno));
@@ -475,14 +483,15 @@ warn_hashdb_algo:
 }
 
 
-static int get_path_hash(char *path, uint64_t *path_hash)
+static int get_path_hash(char *path, int pathlen, uint64_t *path_hash)
 {
-  uint64_t aligned_path[(PATHBUF_SIZE + 8) / sizeof(uint64_t)];
+  uint64_t aligned_path[(JC_PATHBUF_SIZE + 8) / sizeof(uint64_t)];
   int retval;
 
   *path_hash = 0;
+  if (pathlen < 1) pathlen = strlen(path);
   if ((uintptr_t)path & 0x0f) {
-    strncpy((char *)&aligned_path, path, PATHBUF_SIZE);
+    strncpy((char *)&aligned_path, path, JC_PATHBUF_SIZE);
     retval = jc_block_hash(NORMAL, (uint64_t *)aligned_path, path_hash, strlen((char *)aligned_path));
   } else retval = jc_block_hash(NORMAL, (uint64_t *)path, path_hash, strlen(path));
   return retval;
@@ -499,7 +508,7 @@ int read_hashdb_entry(file_t *file)
 
   LOUD(fprintf(stderr, "read_hashdb_entry('%s')\n", file->d_name);)
   if (file == NULL || file->d_name == NULL) goto error_null;
-  if (get_path_hash(file->d_name, &path_hash) != 0) goto error_path_hash;
+  if (get_path_hash(file->d_name, file->d_name_len, &path_hash) != 0) goto error_path_hash;
   bucket = path_hash & HT_MASK;
   if (hashdb[bucket] == NULL) return 0;
   cur = hashdb[bucket];
@@ -511,7 +520,7 @@ int read_hashdb_entry(file_t *file)
       continue;
     }
     /* Found a matching path hash */
-    if (strcmp(cur->path, file->d_name) != 0) {
+    if (cur->pathlen == file->d_name_len && memcmp(cur->path, file->d_name, cur->pathlen) == 0) {
       cur = cur->left;
       if (cur == NULL) return 0;
       continue;
