@@ -238,7 +238,7 @@ static_jc: $(PROGRAM_NAME)
 static: $(PROGRAM_NAME)
 	$(CC) $(CFLAGS) $(OBJS) -static $(LDFLAGS) $(STATIC_LDFLAGS) -o $(PROGRAM_NAME)$(SUFFIX)
 
-static_stripped: $(PROGRAM_NAME) static static_jc
+static_stripped: $(PROGRAM_NAME) static_jc
 	-strip $(PROGRAM_NAME)$(SUFFIX)
 
 $(PROGRAM_NAME): $(OBJS) libjodycode_vercheck
