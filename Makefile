@@ -221,6 +221,18 @@ else
  DYN_LDFLAGS += -ljodycode
 endif
 
+# Don't build ljc_vercheck dynamically on Windows
+ifdef ON_WINDOWS
+ LJC_DYNAMIC = $(BSTATIC) $(STATIC_LDFLAGS)
+ $(info )
+ $(info Notice: Windows dynamic builds will build but silently fail)
+ $(info         without libjodycode.dll in the same directory.)
+ $(info         To avoid this, link statically: 'make static_jc')
+ $(info )
+else
+ LJC_DYNAMIC = $(BDYNAMIC) $(DYN_LDFLAGS)
+endif
+
 
 CFLAGS += $(COMPILER_OPTIONS) $(CFLAGS_EXTRA)
 LDFLAGS += $(LINK_OPTIONS) $(LDFLAGS_EXTRA)
@@ -293,10 +305,10 @@ package:
 .PHONY: ljc_vercheck_static ljc_vercheck_dynamic
 
 ljc_vercheck_dynamic:
-	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(BDYNAMIC) $(DYN_LDFLAGS) -o ljc_vercheck$(SUFFIX)
+	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(LJC_DYNAMIC) -o ljc_vercheck$(SUFFIX)
 	@echo
-	@./ljc_vercheck
-	@if [ `./ljc_vercheck$(SUFFIX) | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
+	@./ljc_vercheck || echo "Version check failed. Dynamic linking probably to blame."
+	@if [ `(./ljc_vercheck$(SUFFIX) || echo ":0:0:0:0") | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
 		then echo "The linked libjodycode feature level is too old. Get the latest libjodycode and try again."; \
 		else echo "The linked libjodycode feature level is OK."; \
 	fi
@@ -306,7 +318,7 @@ ljc_vercheck_static:
 	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(BSTATIC) $(STATIC_LDFLAGS) $(BDYNAMIC) -o ljc_vercheck$(SUFFIX)
 	@echo
 	@./ljc_vercheck
-	@if [ `./ljc_vercheck$(SUFFIX) | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
+	@if [ `(./ljc_vercheck$(SUFFIX) || echo ":0:0:0:0") | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
 		then echo "The linked libjodycode feature level is too old. Get the latest libjodycode and try again."; \
 		else echo "The linked libjodycode feature level is OK."; \
 	fi
