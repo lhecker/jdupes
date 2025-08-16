@@ -206,17 +206,19 @@ ifndef IGNORE_NEARBY_JC
   ifeq ("$(wildcard ../libjodycode/version.o)","")
    $(error You must build libjodycode before building jdupes)
   endif
- endif
- ifneq ("$(wildcard ../libjodycode/libjodycode.a)","")
-  $(info Overriding static library extension .lib for found extension .a)
-  LIB_EXT=.a
- endif
- STATIC_LDFLAGS += ../libjodycode/libjodycode$(LIB_EXT)
- ifdef ON_WINDOWS
+  ifneq ("$(wildcard ../libjodycode/libjodycode.a)","")
+   $(info Overriding static library extension .lib for found extension .a)
+   LIB_EXT=.a
+  endif
+  STATIC_LDFLAGS += ../libjodycode/libjodycode$(LIB_EXT)
   DYN_LDFLAGS += -l:../libjodycode/libjodycode$(SO_EXT)
  else
+  STATIC_LDFLAGS += -ljodycode
   DYN_LDFLAGS += -ljodycode
  endif
+else
+ STATIC_LDFLAGS += -ljodycode
+ DYN_LDFLAGS += -ljodycode
 endif
 
 
@@ -224,24 +226,24 @@ CFLAGS += $(COMPILER_OPTIONS) $(CFLAGS_EXTRA)
 LDFLAGS += $(LINK_OPTIONS) $(LDFLAGS_EXTRA)
 
 
-all: libjodycode_hint $(PROGRAM_NAME) dynamic_jc
+all: libjodycode_hint $(PROGRAM_NAME) dynamic_jc ljc_vercheck_dynamic
 
 hashdb_util: hashdb.o hashdb_util.o
-	$(CC) $(CFLAGS) hashdb.o hashdb_util.o $(LDFLAGS) $(STATIC_LDFLAGS) $(BDYNAMIC) -o hashdb_util$(SUFFIX)
+	$(CC) $(CFLAGS) hashdb.o hashdb_util.o $(LDFLAGS) $(BSTATIC) $(STATIC_LDFLAGS) $(BDYNAMIC) -o hashdb_util$(SUFFIX)
 
-dynamic_jc: $(PROGRAM_NAME)
-	$(CC) $(CFLAGS) $(OBJS) $(BDYNAMIC) $(LDFLAGS) $(DYN_LDFLAGS) -o $(PROGRAM_NAME)$(SUFFIX)
+dynamic_jc: $(PROGRAM_NAME) ljc_vercheck_dynamic
+	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) $(BDYNAMIC) $(DYN_LDFLAGS) -o $(PROGRAM_NAME)$(SUFFIX)
 
-static_jc: $(PROGRAM_NAME)
-	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) $(STATIC_LDFLAGS) $(BDYNAMIC) -o $(PROGRAM_NAME)$(SUFFIX)
+static_jc: $(PROGRAM_NAME) ljc_vercheck_static
+	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) $(BSTATIC) $(STATIC_LDFLAGS) $(BDYNAMIC) -o $(PROGRAM_NAME)$(SUFFIX)
 
-static: $(PROGRAM_NAME)
-	$(CC) $(CFLAGS) $(OBJS) -static $(LDFLAGS) $(STATIC_LDFLAGS) -o $(PROGRAM_NAME)$(SUFFIX)
+static: $(PROGRAM_NAME) ljc_vercheck_static
+	$(CC) $(CFLAGS) $(OBJS) -static $(LDFLAGS) $(BSTATIC) $(STATIC_LDFLAGS) -o $(PROGRAM_NAME)$(SUFFIX)
 
 static_stripped: $(PROGRAM_NAME) static_jc
 	-strip $(PROGRAM_NAME)$(SUFFIX)
 
-$(PROGRAM_NAME): $(OBJS) libjodycode_vercheck
+$(PROGRAM_NAME): $(OBJS)
 	@:
 
 winres.o: winres.rc winres.manifest.xml
@@ -288,11 +290,20 @@ chrootpackage:
 package:
 	+./generate_packages.sh $(ARCH)
 
-.PHONY: libjodycode_vercheck ljc_vercheck
-ljc_vercheck:
-	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(STATIC_LDFLAGS) $(BDYNAMIC) -o ljc_vercheck$(SUFFIX)
+.PHONY: ljc_vercheck_static ljc_vercheck_dynamic
 
-libjodycode_vercheck: ljc_vercheck
+ljc_vercheck_dynamic:
+	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(BDYNAMIC) $(DYN_LDFLAGS) -o ljc_vercheck$(SUFFIX)
+	@echo
+	@./ljc_vercheck
+	@if [ `./ljc_vercheck$(SUFFIX) | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
+		then echo "The linked libjodycode feature level is too old. Get the latest libjodycode and try again."; \
+		else echo "The linked libjodycode feature level is OK."; \
+	fi
+	@echo
+
+ljc_vercheck_static:
+	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(BSTATIC) $(STATIC_LDFLAGS) $(BDYNAMIC) -o ljc_vercheck$(SUFFIX)
 	@echo
 	@./ljc_vercheck
 	@if [ `./ljc_vercheck$(SUFFIX) | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
