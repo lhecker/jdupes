@@ -307,8 +307,8 @@ package:
 ljc_vercheck_dynamic:
 	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(LJC_DYNAMIC) -o ljc_vercheck$(SUFFIX)
 	@echo
-	@./ljc_vercheck || echo "Version check failed. Dynamic linking probably to blame."
-	@if [ `(./ljc_vercheck$(SUFFIX) || echo ":0:0:0:0") | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
+	@./ljc_vercheck 2>/dev/null || echo "Version check failed. Install libjodycode on the system and try again."
+	@if [ `(./ljc_vercheck$(SUFFIX) 2>/dev/null || echo ":0:0:0:0") | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
 		then echo "The linked libjodycode feature level is too old. Get the latest libjodycode and try again."; \
 		else echo "The linked libjodycode feature level is OK."; \
 	fi
@@ -317,8 +317,8 @@ ljc_vercheck_dynamic:
 ljc_vercheck_static:
 	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(BSTATIC) $(STATIC_LDFLAGS) $(BDYNAMIC) -o ljc_vercheck$(SUFFIX)
 	@echo
-	@./ljc_vercheck
-	@if [ `(./ljc_vercheck$(SUFFIX) || echo ":0:0:0:0") | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
+	@./ljc_vercheck 2>/dev/null
+	@if [ `(./ljc_vercheck$(SUFFIX) 2>/dev/null || echo ":0:0:0:0") | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
 		then echo "The linked libjodycode feature level is too old. Get the latest libjodycode and try again."; \
 		else echo "The linked libjodycode feature level is OK."; \
 	fi
