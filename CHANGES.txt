@@ -1,3 +1,8 @@
+jdupes 1.30.0 (2025-08-20)
+- Change -C/--chunk-size to use powers of two instead of raw KiB sizes
+- Add '-C help' for clearer documentation of -C usage and rationale
+- Scripts using -C must be updated; values >18 now cause an error exit
+
 jdupes 1.29.0 (2025-08-15)
 - Switch to libjodycode 4.0 API
 - Add -Y/--hash-db-populate to force-populate a hash database
