@@ -64,45 +64,6 @@ static const struct extfilter_tags extfilter_tags[] = {
 };
 
 
-static void help_text_extfilter(void)
-{
-#ifndef NO_HELPTEXT
-  printf("Detailed help for jdupes -X/--ext-filter options\n");
-  printf("General format: jdupes -X filter[:value][size_suffix]\n\n");
-
-  printf("noext:ext1[,ext2,...]   \tExclude files with certain extension(s)\n\n");
-  printf("onlyext:ext1[,ext2,...] \tOnly include files with certain extension(s)\n\n");
-  printf("size[+-=]:size[suffix]  \tOnly Include files matching size criteria\n");
-  printf("                        \tSize specs: + larger, - smaller, = equal to\n");
-  printf("                        \tSpecs can be mixed, i.e. size+=:100k will\n");
-  printf("                        \tonly include files 100KiB or more in size.\n\n");
-  printf("nostr:text_string       \tExclude all paths containing the string\n");
-  printf("onlystr:text_string     \tOnly allow paths containing the string\n");
-  printf("                        \tHINT: you can use these for directories:\n");
-  printf("                        \t-X nostr:/dir_x/  or  -X onlystr:/dir_x/\n");
-  printf("newer:datetime          \tOnly include files newer than specified date\n");
-  printf("older:datetime          \tOnly include files older than specified date\n");
-  printf("                        \tDate/time format: \"YYYY-MM-DD HH:MM:SS\"\n");
-  printf("                        \tTime is optional (remember to escape spaces!)\n");
-/*  printf("\t\n"); */
-
-  printf("\nSome filters take no value or multiple values. Filters that can take\n");
-  printf(  "a numeric option generally support the size multipliers K/M/G/T/P/E\n");
-  printf(  "with or without an added iB or B. Multipliers are binary-style unless\n");
-  printf(  "the -B suffix is used, which will use decimal multipliers. For example,\n");
-  printf(  "16k or 16kib = 16384; 16kb = 16000. Multipliers are case-insensitive.\n\n");
-
-  printf(  "Filters have cumulative effects: jdupes -X size+:99 -X size-:101 will\n");
-  printf(  "cause only files of exactly 100 bytes in size to be included.\n\n");
-
-  printf(  "Extension matching is case-insensitive.\n");
-  printf(  "Path substring matching is case-sensitive.\n");
-#else /* NO_HELPTEXT */
-  version_text(0);
-#endif /* NO_HELPTEXT */
-}
-
-
 /* Does a file have one of these comma-separated extensions?
  * Returns 1 after any match, 0 if no matches */
 static int match_extensions(char *path, const char *extlist)
@@ -173,9 +134,6 @@ void add_extfilter(const char *option)
   if (option == NULL) jc_nullptr("add_extfilter()");
 
   LOUD(fprintf(stderr, "add_extfilter '%s'\n", option);)
-
-  /* Invoke help text if requested */
-  if (jc_strcaseeq(option, "help") == 0) { help_text_extfilter(); exit(EXIT_SUCCESS); }
 
   opt = malloc(strlen(option) + 1);
   if (opt == NULL) jc_oom("add_extfilter option");

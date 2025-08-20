@@ -88,7 +88,7 @@ const char *feature_flags[] = {
 void help_text(void)
 {
 #ifndef NO_HELPTEXT
-  printf("Usage: jdupes [options] FILES and/or DIRECTORIES...\n\n");
+  printf("\nUsage: jdupes [options] FILES and/or DIRECTORIES...\n\n");
 
   printf("Duplicate file sets will be printed by default unless a different action\n");
   printf("option is specified (delete, summarize, link, dedupe, etc.)\n");
@@ -105,7 +105,8 @@ void help_text(void)
   printf(" -B --dedupe      \tdo a copy-on-write (reflink/clone) deduplication\n");
 #endif
 #ifndef NO_CHUNKSIZE
-  printf(" -C --chunk-size=#\toverride I/O chunk size in KiB (min %d, max %d)\n", MIN_CHUNK_SIZE / 1024, MAX_CHUNK_SIZE / 1024);
+  printf(" -C --chunk-size=#\toverride I/O chunk size; valid range is 0-18.\n");
+  printf("                  \tUse '-C help' for detailed chunk size help\n");
 #endif /* NO_CHUNKSIZE */
 #ifndef NO_DELETE
   printf(" -d --delete      \tprompt user for files to preserve and delete all\n");
@@ -204,6 +205,79 @@ void help_text(void)
 #endif /* NO_HELPTEXT */
   return;
 }
+
+
+void help_text_extfilter(void)
+{
+#ifndef NO_HELPTEXT
+  printf("\nDetailed help for jdupes -X/--ext-filter options\n");
+  printf("General format: jdupes -X filter[:value][size_suffix]\n\n");
+
+  printf("noext:ext1[,ext2,...]   \tExclude files with certain extension(s)\n\n");
+  printf("onlyext:ext1[,ext2,...] \tOnly include files with certain extension(s)\n\n");
+  printf("size[+-=]:size[suffix]  \tOnly Include files matching size criteria\n");
+  printf("                        \tSize specs: + larger, - smaller, = equal to\n");
+  printf("                        \tSpecs can be mixed, i.e. size+=:100k will\n");
+  printf("                        \tonly include files 100KiB or more in size.\n\n");
+  printf("nostr:text_string       \tExclude all paths containing the string\n");
+  printf("onlystr:text_string     \tOnly allow paths containing the string\n");
+  printf("                        \tHINT: you can use these for directories:\n");
+  printf("                        \t-X nostr:/dir_x/  or  -X onlystr:/dir_x/\n");
+  printf("newer:datetime          \tOnly include files newer than specified date\n");
+  printf("older:datetime          \tOnly include files older than specified date\n");
+  printf("                        \tDate/time format: \"YYYY-MM-DD HH:MM:SS\"\n");
+  printf("                        \tTime is optional (remember to escape spaces!)\n");
+/*  printf("\t\n"); */
+
+  printf("\nSome filters take no value or multiple values. Filters that can take\n");
+  printf(  "a numeric option generally support the size multipliers K/M/G/T/P/E\n");
+  printf(  "with or without an added iB or B. Multipliers are binary-style unless\n");
+  printf(  "the -B suffix is used, which will use decimal multipliers. For example,\n");
+  printf(  "16k or 16kib = 16384; 16kb = 16000. Multipliers are case-insensitive.\n\n");
+
+  printf(  "Filters have cumulative effects: jdupes -X size+:99 -X size-:101 will\n");
+  printf(  "cause only files of exactly 100 bytes in size to be included.\n\n");
+
+  printf(  "Extension matching is case-insensitive.\n");
+  printf(  "Path substring matching is case-sensitive.\n");
+#else /* NO_HELPTEXT */
+  version_text(0);
+#endif /* NO_HELPTEXT */
+}
+
+
+#ifndef NO_CHUNKSIZE
+void help_text_chunksize(void)
+{
+#ifndef NO_HELPTEXT
+  printf("\nDetailed help for jdupes -C/--chunk-size option\n\n");
+  printf("This option overrides the I/O chunk size used to read file data. jdupes\n");
+  printf("attempts to tune the chunk size based on your CPU L1 cache size, or at least\n");
+  printf("use a sensible default for most systems. This maximizes raw throughput by \n");
+  printf("minimizing cache flushes. For fast devices like PCI-Express solid-state drives\n");
+  printf("(SSDs) or data that is already present in the operating system's disk caches,\n");
+  printf("this is the fastest way to read file data.\n\n");
+  printf("When reading from drives that have a \"seek penalty,\" this is NOT the fastest\n");
+  printf("way because switching between reading two files imposes a massive time penalty.\n");
+  printf("For example, if two files are ~6ms apart on a disk, the chunk size is 32K, and\n");
+  printf("the files are 64M in size, there will be 2047 seeks = 12.8 extra seconds to\n");
+  printf("compare the two files. Increasing the chunk size to 64M would read both files\n");
+  printf("sequentially with only one seek, eliminating the penalty.\n\n");
+  printf("Unfortunately, larger chunks will increase cache misses and place more memory\n");
+  printf("pressure on the underlying OS, reducing overall performance. It is only\n");
+  printf("appropriate to use large chunks when the performance boost from reducing seek \n");
+  printf("delays will be greater than the slowdown from cache and RAM penalties imposed\n");
+  printf("by the larger chunks. This usually means that -C is useful with mechanical\n");
+  printf("hard drives and many large (> 64K) files.\n\n");
+  printf("Valid values are 0-18 and represent sizes in powers of two:\n");
+  printf("0 = 4K    1 = 8K    2 = 16K   3 = 32K   4 = 64K   5 = 128K  6 = 256K  7 = 512K\n");
+  printf("8 = 1M    9 = 2M    10= 4M    11= 8M    12= 16M   13= 32M   14= 64M   15= 128M\n");
+  printf("16= 256M  17= 512M  18= 1G\n");
+#else /* NO_HELPTEXT */
+  version_text(0);
+#endif /* NO_HELPTEXT */
+}
+#endif /* NO_CHUNKSIZE */
 
 
 void version_text(int short_version)

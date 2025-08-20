@@ -79,8 +79,6 @@ extern uintmax_t comparisons;
 #ifndef NO_CHUNKSIZE
  extern size_t auto_chunk_size;
  /* Larger chunk size makes large files process faster but uses more RAM */
- #define MIN_CHUNK_SIZE 4096
- #define MAX_CHUNK_SIZE 1048576 * 256
 #else
  /* If automatic chunk sizing is disabled, just use a fixed value */
  #define auto_chunk_size CHUNK_SIZE

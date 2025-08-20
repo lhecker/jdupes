@@ -97,7 +97,8 @@ option is specified (delete, summarize, link, dedupe, etc.)
  -1 --one-file-system   do not match files on different filesystems/devices
  -A --no-hidden         exclude hidden files from consideration
  -B --dedupe            do a copy-on-write (reflink/clone) deduplication
- -C --chunk-size=#      override I/O chunk size in KiB (min 4, max 262144)
+ -C --chunk-size=#      override I/O chunk size; valid range is 0-18.
+                        Use '-C help' for detailed chunk size help
  -d --delete            prompt user for files to preserve and delete all
                         others; important: under particular circumstances,
                         data may be lost when using this option together
@@ -158,6 +159,7 @@ parameter order
                         You can send SIGUSR1 to the program to toggle this
 
 
+
 Detailed help for jdupes -X/--extfilter options
 General format: jdupes -X filter[:value][size_suffix]
 
@@ -190,6 +192,36 @@ cause only files of exactly 100 bytes in size to be included.
 
 Extension matching is case-insensitive.
 Path substring matching is case-sensitive.
+
+
+
+Detailed help for jdupes -C/--chunk-size option
+
+This option overrides the I/O chunk size used to read file data. jdupes
+attempts to tune the chunk size based on your CPU L1 cache size, or at least
+use a sensible default for most systems. This maximizes raw throughput by
+minimizing cache flushes. For fast devices like PCI-Express solid-state drives
+(SSDs) or data that is already present in the operating system's disk caches,
+this is the fastest way to read file data.
+
+When reading from drives that have a "seek penalty," this is NOT the fastest
+way because switching between reading two files imposes a massive time penalty.
+For example, if two files are ~6ms apart on a disk, the chunk size is 32K, and
+the files are 64M in size, there will be 2047 seeks = 12.8 extra seconds to
+compare the two files. Increasing the chunk size to 64M would read both files
+sequentially with only one seek, eliminating the penalty.
+
+Unfortunately, larger chunks will increase cache misses and place more memory
+pressure on the underlying OS, reducing overall performance. It is only
+appropriate to use large chunks when the performance boost from reducing seek
+delays will be greater than the slowdown from cache and RAM penalties imposed
+by the larger chunks. This usually means that -C is useful with mechanical
+hard drives and many large (> 64K) files.
+
+Valid values are 0-18 and represent sizes in powers of two:
+0 = 4K    1 = 8K    2 = 16K   3 = 32K   4 = 64K   5 = 128K  6 = 256K  7 = 512K
+8 = 1M    9 = 2M    10= 4M    11= 8M    12= 16M   13= 32M   14= 64M   15= 128M
+16= 256M  17= 512M  18= 1G
 ```
 
 The `-U`/`--no-trav-check` option disables the double-traversal protection.
@@ -313,11 +345,9 @@ disk heads. Smaller numbers may increase algorithm speed depending on the
 characteristics of your CPU but will usually increase I/O and system call
 overhead as well. The number also directly affects memory usage: I/O chunk size
 is used for at least three allocations in the program, so using a chunk size of
-16777216 (16 MiB) will require 48 MiB of RAM. The default is usually between
-32768 and 65536 which results in the fastest raw speed of the algorithm and
-generally good all-around performance. Feel free to experiment with the number
-on your data set and report your experiences (preferably with benchmarks and
-info on your data set.)
+16 MiB will require 48 MiB of RAM. The default is usually between 32K and 64K
+which results in the fastest raw speed of the algorithm and generally good
+all-around performance. Feel free to experiment and time your runs!
 
 Using `-P`/`--print` will cause the program to print extra information that may
 be useful but will pollute the output in a way that makes scripted handling

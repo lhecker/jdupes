@@ -91,6 +91,13 @@ static const char *program_name;
 
 #ifndef NO_CHUNKSIZE
  size_t auto_chunk_size = CHUNK_SIZE;
+ #define MIN_CHUNK_SIZE 4096
+ #define MAX_CHUNK_SIZE (1048576 * 1024)
+ #define MAX_CHUNK_OPT_SIZE 18
+ /* Chunk size is now exponential to make things easier */
+ static unsigned int chunk_opt_size[] = {
+    1 << 12, 1 << 13, 1 << 14, 1 << 15, 1 << 16, 1 << 17, 1 << 18, 1 << 19, 1 << 20, 1 << 21, 1 << 22, 1 << 23, 1 << 24, 1 << 25, 1 << 26, 1 << 27, 1 << 28, 1 << 29, 1 << 30
+ };
 #else
  /* If automatic chunk sizing is disabled, just use a fixed value */
  #define auto_chunk_size CHUNK_SIZE
@@ -133,6 +140,8 @@ char tempname[JC_PATHBUF_SIZE * 2];
 /* Strings used in multiple places */
 const char *s_interrupt = "\nStopping file scan due to user abort\n";
 const char *s_no_dupes = "No duplicates found.\n";
+const char *s_help = "help";
+const char *s_chunksize_help = "         Run 'jdupes -C help' or info on the new size specifications.\n\n";
 
 /* Exit status; use exit() codes for setting this */
 int exit_status = EXIT_SUCCESS;
@@ -261,7 +270,7 @@ int main(int argc, char **argv)
   if (pci != NULL) {
     if (pci->l1 != 0) auto_chunk_size = (pci->l1 / 2);
     else if (pci->l1d != 0) auto_chunk_size = (pci->l1d / 2);
-    /* Must be at least 4096 (4 KiB) and cannot exceed CHUNK_SIZE */
+    /* Must be at least 4096 (4 KiB) and cannot exceed MAX_CHUNK_SIZE */
     if (auto_chunk_size < MIN_CHUNK_SIZE || auto_chunk_size > MAX_CHUNK_SIZE) auto_chunk_size = CHUNK_SIZE;
     /* Force to a multiple of 4096 if it isn't already */
     if ((auto_chunk_size & 0x00000fffUL) != 0)
@@ -326,13 +335,20 @@ int main(int argc, char **argv)
 #endif /* ENABLE_DEDUPE */
 #ifndef NO_CHUNKSIZE
     case 'C':
-      manual_chunk_size = (strtol(optarg, NULL, 10) & 0x0ffffffcL) << 10;  /* Align to 4K sizes */
-      if (manual_chunk_size < MIN_CHUNK_SIZE || manual_chunk_size > MAX_CHUNK_SIZE) {
-        fprintf(stderr, "warning: invalid manual chunk size (must be %d - %d KiB); using defaults\n", MIN_CHUNK_SIZE / 1024, MAX_CHUNK_SIZE / 1024);
-        LOUD(fprintf(stderr, "Manual chunk size (failed) was apparently '%s' => %ld KiB\n", optarg, manual_chunk_size / 1024));
-        manual_chunk_size = 0;
-      } else auto_chunk_size = (size_t)manual_chunk_size;
-      LOUD(fprintf(stderr, "Manual chunk size is %ld\n", manual_chunk_size));
+      errno = 0;
+      if (jc_strcaseeq(optarg, s_help) == 0) { help_text_chunksize(); exit(EXIT_SUCCESS); }
+      manual_chunk_size = strtol(optarg, NULL, 10);
+      if (errno != 0 || manual_chunk_size < 0 || manual_chunk_size > MAX_CHUNK_OPT_SIZE) {
+        fprintf(stderr, "error: -C/--chunk-size '%s' invalid or out of range\n", optarg);
+        fprintf(stderr, "%s", s_chunksize_help);
+	exit(EXIT_FAILURE);
+      }
+      fprintf(stderr, "\nWARNING: The -C/--chunk-size parameter has changed!\n");
+      fprintf(stderr, "%s", s_chunksize_help);
+      auto_chunk_size = chunk_opt_size[manual_chunk_size];
+      fprintf(stderr, "note: the user-selected I/O chunk size is ");
+      if (auto_chunk_size <= 524288) fprintf(stderr, "%lld KiB\n", auto_chunk_size / 1024);
+      if (auto_chunk_size > 524288) fprintf(stderr, "%lld MiB\n", auto_chunk_size / 1048576);
       break;
 #endif /* NO_CHUNKSIZE */
 #ifndef NO_DELETE
@@ -501,6 +517,8 @@ int main(int argc, char **argv)
       break;
 #ifndef NO_EXTFILTER
     case 'X':
+      /* Invoke help text if requested */
+      if (jc_strcaseeq(optarg, s_help) == 0) { help_text_extfilter(); exit(EXIT_SUCCESS); }
       add_extfilter(optarg);
       break;
 #endif /* NO_EXTFILTER */
