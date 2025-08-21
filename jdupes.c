@@ -347,8 +347,8 @@ int main(int argc, char **argv)
       fprintf(stderr, "%s", s_chunksize_help);
       auto_chunk_size = chunk_opt_size[manual_chunk_size];
       fprintf(stderr, "note: the user-selected I/O chunk size is ");
-      if (auto_chunk_size <= 524288) fprintf(stderr, "%lld KiB\n", auto_chunk_size / 1024);
-      if (auto_chunk_size > 524288) fprintf(stderr, "%lld MiB\n", auto_chunk_size / 1048576);
+      if (auto_chunk_size <= 524288) fprintf(stderr, "%lu KiB\n", (long unsigned int)(auto_chunk_size / 1024));
+      if (auto_chunk_size > 524288) fprintf(stderr, "%lu MiB\n", (long unsigned int)(auto_chunk_size / 1048576));
       break;
 #endif /* NO_CHUNKSIZE */
 #ifndef NO_DELETE
