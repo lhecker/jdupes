@@ -141,7 +141,7 @@ char tempname[JC_PATHBUF_SIZE * 2];
 const char *s_interrupt = "\nStopping file scan due to user abort\n";
 const char *s_no_dupes = "No duplicates found.\n";
 const char *s_help = "help";
-const char *s_chunksize_help = "         Run 'jdupes -C help' or info on the new size specifications.\n\n";
+const char *s_chunksize_help = "         Run 'jdupes -C help' for info on the new size specifications.\n\n";
 
 /* Exit status; use exit() codes for setting this */
 int exit_status = EXIT_SUCCESS;
