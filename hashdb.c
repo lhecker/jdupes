@@ -270,7 +270,7 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
           /* Should we invalidate this entry? */
           exclude = 0;
           if (cur->mtime != check->mtime) exclude |= 1;
-          if (cur->inode != check->inode) exclude |= 2;
+          if (ISFLAG(flags, F_HASHDB_IGNORE_INODES) && cur->inode != check->inode) exclude |= 2;
           if (cur->size  != check->size)  exclude |= 4;
           if (exclude == 0) {
             if (cur->hashcount == 1 && ISFLAG(check->flags, FF_HASH_FULL)) {

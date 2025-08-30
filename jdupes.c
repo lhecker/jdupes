@@ -192,6 +192,7 @@ int main(int argc, char **argv)
     { "", 0, 0, '9' },
     { "no-hidden", 0, 0, 'A' },
     { "dedupe", 0, 0, 'B' },
+    { "hash-db-opts", 1, 0, 'b' },
     { "chunk-size", 1, 0, 'C' },
     { "debug", 0, 0, 'D' },
     { "delete", 0, 0, 'd' },
@@ -236,7 +237,7 @@ int main(int argc, char **argv)
  #define GETOPT getopt
 #endif
 
-#define GETOPT_STRING "@019ABC:DdEefHhIijKLlMmNnOo:P:pQqRrSsTtUuVvX:Yy:Zz"
+#define GETOPT_STRING "@019ABb:C:DdEefHhIijKLlMmNnOo:P:pQqRrSsTtUuVvX:Yy:Zz"
 
   /* Verify libjodycode compatibility before going further */
   if (libjodycode_version_check(1, 0) != 0) {
@@ -333,6 +334,10 @@ int main(int argc, char **argv)
       LOUD(fprintf(stderr, "opt: CoW/block-level deduplication enabled (--dedupe)\n");)
       break;
 #endif /* ENABLE_DEDUPE */
+#ifndef NO_HASHDB
+    case 'b':
+      break;
+#endif /* NO_HASHDB */
 #ifndef NO_CHUNKSIZE
     case 'C':
       errno = 0;

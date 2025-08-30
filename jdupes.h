@@ -140,6 +140,7 @@ extern uint64_t flags, a_flags, p_flags;
 #define F_BENCHMARKSTOP		(1ULL << 29)
 #define F_HASHDB		(1ULL << 30)
 #define F_HASHDB_POPULATE	(1ULL << 31)
+#define F_HASHDB_IGNORE_INODES	(1ULL << 32)
 
 #define F_LOUD			(1ULL << 62)
 #define F_DEBUG			(1ULL << 63)
