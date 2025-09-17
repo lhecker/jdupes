@@ -245,25 +245,19 @@ int main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-/* Windows buffers our stderr output; don't let it do that */
+/* On Windows, set up the terminal and un-wide argv */
 #ifdef ON_WINDOWS
-  if (setvbuf(stderr, NULL, _IONBF, 0) != 0)
-    fprintf(stderr, "warning: setvbuf() failed\n");
-#endif
-
-#ifdef UNICODE
-  /* Create a UTF-8 **argv from the wide version */
+ #ifdef UNICODE
   static char **argv;
-  int wa_err;
-  argv = (char **)malloc(sizeof(char *) * (size_t)argc);
-  if (!argv) jc_oom("main() unicode argv");
-  wa_err = jc_widearg_to_argv(argc, wargv, &argv);
-  if (wa_err != 0) {
-    jc_print_error(wa_err);
+  int ut_err = jc_setup_unicode_terminal(argc, wargv, &argv, NULL);
+ #else
+  int ut_err = jc_setup_unicode_terminal(0, NULL, NULL, NULL);
+ #endif /* UNICODE */
+  if (ut_err != 0) {
+    jc_print_error(ut_err);
     exit(EXIT_FAILURE);
   }
-  jc_set_output_modes(JC_MODE_UTF16_TTY, JC_MODE_UTF16_TTY);
-#endif /* UNICODE */
+#endif /* ON_WINDOWS */
 
 #ifndef NO_CHUNKSIZE
   /* Auto-tune chunk size to be half of L1 data cache if possible */
