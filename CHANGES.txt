@@ -1,3 +1,7 @@
+jdupes 1.31.0 (2025-09-25)
+
+- Fix issue where hash database entries are written even if invalidated
+
 jdupes 1.30.0 (2025-08-20)
 - Change -C/--chunk-size to use powers of two instead of raw KiB sizes
 - Add '-C help' for clearer documentation of -C usage and rationale
