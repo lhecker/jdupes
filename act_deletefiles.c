@@ -225,7 +225,7 @@ stop_scanning:
             printf("   [-] "); jc_fwprint(stdout, dupelist[x]->d_name, 1);
 #ifndef NO_HASHDB
             if (ISFLAG(flags, F_HASHDB)) {
-              dupelist[x]->mtime = 0;
+              dupelist[x]->mtime = -1;
               add_hashdb_entry(NULL, 0, dupelist[x]);
           }
 #endif

@@ -154,7 +154,7 @@ static int write_hashdb_entry(FILE *db, hashdb_t *cur, uint64_t *cnt, const int 
   }
 
   /* Write out this node if it wasn't invalidated */
-  if (hashdb_dirty == 1 && cur->hashcount != 0) {
+  if (hashdb_dirty == 1 && cur->hashcount != 0 && cur->mtime != -1) {
     snprintf(out, JC_PATHBUF_SIZE + 127, "%u,%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%s\n",
       cur->hashcount, cur->partialhash, cur->fullhash, (uint64_t)cur->mtime, (uint64_t)cur->size, (uint64_t)cur->inode, cur->path);
     (*cnt)++;
@@ -278,6 +278,7 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
           } else {
             /* Something changed; invalidate this entry */
             cur->hashcount = 0;
+	    cur->mtime = -1;
             hashdb_dirty = 1;
             return NULL;
           }
@@ -316,8 +317,8 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
   /* If a check entry was given then populate it */
   if (check != NULL && check->d_name != NULL && ISFLAG(check->flags, FF_HASH_PARTIAL)) {
     hashdb_dirty = 1;
-    file->path_hash = path_hash;
     file->path = (char *)((uintptr_t)file + (uintptr_t)sizeof(hashdb_t));
+    file->path_hash = path_hash;
     file->pathlen = pathlen;
     memcpy(file->path, check->d_name, pathlen + 1);
     *(file->path + pathlen) = '\0';
@@ -332,6 +333,7 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
     /* No check entry? Populate from passed parameters */
     file->path = (char *)((uintptr_t)file + (uintptr_t)sizeof(hashdb_t));
     file->path_hash = path_hash;
+    file->pathlen = pathlen;
   }
   return file;
 }
@@ -391,6 +393,7 @@ int64_t load_hash_database(const char * const restrict dbname)
     uint64_t partialhash, fullhash = 0;
     time_t mtime;
     char *path;
+    char *cleanpath;
     hashdb_t *entry;
     off_t size;
     jdupes_ino_t inode;
@@ -424,16 +427,16 @@ int64_t load_hash_database(const char * const restrict dbname)
     inode = strtoull(field, NULL, 16);
 
     path = buf + fixed_len;
-    path = remove_leading_dotslashes(path);
-    path = strtok(path, "\n"); if (path == NULL) goto error_hashdb_line;
-    pathlen = linelen - fixed_len + 1;
+    cleanpath = remove_leading_dotslashes(path);
+    cleanpath = strtok(path, "\n"); if (cleanpath == NULL) goto error_hashdb_line;
+    pathlen = linelen - fixed_len - 1 - ((uintptr_t)cleanpath - (uintptr_t)path);
     if (pathlen > JC_PATHBUF_SIZE) goto error_hashdb_line;
-    *(path + pathlen) = '\0';
+    *(cleanpath + pathlen) = '\0';
 
     /* Allocate and populate a tree entry */
-    entry = add_hashdb_entry(path, pathlen, NULL);
+    entry = add_hashdb_entry(cleanpath, pathlen, NULL);
     if (entry == NULL) goto error_hashdb_add;
-    memcpy(entry->path, path, pathlen + 1);
+    memcpy(entry->path, cleanpath, pathlen + 1);
     entry->mtime = mtime;
     entry->inode = inode;
     entry->size = size;
