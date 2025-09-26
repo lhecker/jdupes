@@ -26,7 +26,7 @@ void add_file_to_hashdb(file_t *file)
 {
   if (ISFLAG(file->flags, FF_HASHDB_DIRTY)) {
     CLEARFLAG(file->flags, FF_HASHDB_DIRTY);
-    add_hashdb_entry(NULL, 0, file);
+    add_hashdb_entry(NULL, 0, file, 0);
   }
   return;
 }
@@ -78,8 +78,8 @@ static void cross_copy_hashes(file_t *file1, file_t *file2)
   /* Add to hash database */
 #ifndef NO_HASHDB
   if (ISFLAG(flags, F_HASHDB)) {
-    if (dirty1 == 1) add_hashdb_entry(NULL, 0, file1);
-    if (dirty2 == 1) add_hashdb_entry(NULL, 0, file2);
+    if (dirty1 == 1) add_hashdb_entry(NULL, 0, file1, 0);
+    if (dirty2 == 1) add_hashdb_entry(NULL, 0, file2, 0);
  }
 #endif
 

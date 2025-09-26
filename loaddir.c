@@ -61,7 +61,7 @@ static file_t *init_newfile(const size_t pathlen, file_t * restrict * const rest
 
   LOUD(fprintf(stderr, "init_newfile(len %" PRIuMAX ", filelistp %p)\n", (uintmax_t)pathlen, filelistp));
 
-  newfile->d_name = (char *)malloc(EXTEND64(pathlen + 1));
+  newfile->d_name = (char *)calloc(1, EXTEND64(pathlen + 1));
   if (!newfile->d_name) jc_oom("init_newfile() filename");
 
   newfile->d_name_len = pathlen;

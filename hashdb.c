@@ -224,7 +224,7 @@ static void rebalance_hashdb_tree(hashdb_t **parent)
 
 
 /* in_path allows use of a precomputed path length to avoid extra strlen() calls */
-hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
+hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check, int update)
 {
   unsigned int bucket;
   hashdb_t *file;
@@ -264,9 +264,9 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
       if (check != NULL && cur->path != NULL) {
         if (cur->path_hash == path_hash && cur->pathlen == check->d_name_len && memcmp(cur->path, check->d_name, cur->pathlen) == 0) {
           /* Should we invalidate this entry? */
-          exclude = 0;
+          exclude = update << 4;
           if (cur->mtime != check->mtime) exclude |= 1;
-          if (ISFLAG(flags, F_HASHDB_IGNORE_INODES) && cur->inode != check->inode) exclude |= 2;
+          if (!ISFLAG(flags, F_HASHDB_IGNORE_INODES) && cur->inode != check->inode) exclude |= 2;
           if (cur->size  != check->size)  exclude |= 4;
           if (exclude == 0) {
             if (cur->hashcount == 1 && ISFLAG(check->flags, FF_HASH_FULL)) {
@@ -277,10 +277,9 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
             return cur;
           } else {
             /* Something changed; invalidate this entry */
-            cur->hashcount = 0;
-            cur->mtime = -1;
-            hashdb_dirty = 1;
-            return NULL;
+fprintf(stderr, "Invalidating entry for %s\n", cur->path);
+            file = cur;
+            goto force_populate;
           }
         }
       }
@@ -314,6 +313,7 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
     }
   }
 
+force_populate:
   /* If a check entry was given then populate it */
   if (check != NULL && check->d_name != NULL && ISFLAG(check->flags, FF_HASH_PARTIAL)) {
     hashdb_dirty = 1;
@@ -434,7 +434,7 @@ int64_t load_hash_database(const char * const restrict dbname)
     *(cleanpath + pathlen) = '\0';
 
     /* Allocate and populate a tree entry */
-    entry = add_hashdb_entry(cleanpath, pathlen, NULL);
+    entry = add_hashdb_entry(cleanpath, pathlen, NULL, 0);
     if (entry == NULL) goto error_hashdb_add;
     memcpy(entry->path, cleanpath, pathlen + 1);
     entry->mtime = mtime;

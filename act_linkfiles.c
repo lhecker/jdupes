@@ -351,11 +351,18 @@ void linkfiles(file_t *files, const int linktype, const int only_current)
             /* Delete hashdb entry for symlinks - the original file is gone */
             switch (linktype) {
               case 0:
-                dupelist[x]->mtime = 0;
-                add_hashdb_entry(NULL, 0, dupelist[x]);
+                dupelist[x]->mtime = -1;
+                add_hashdb_entry(NULL, 0, dupelist[x], 0);
                 break;
               case 1:
-                
+		/* Copy hard link source info to link target and update hashdb */
+                dupelist[x]->filehash_partial = srcfile->filehash_partial;
+                dupelist[x]->filehash = srcfile->filehash;
+                dupelist[x]->mtime = srcfile->mtime;
+                dupelist[x]->inode = srcfile->inode;
+                dupelist[x]->flags |= FF_HASHDB_DIRTY | (srcfile->flags & (FF_HASH_PARTIAL | FF_HASH_FULL));
+                add_hashdb_entry(NULL, 0, dupelist[x], 1);
+              default:
             }
           }
 #endif

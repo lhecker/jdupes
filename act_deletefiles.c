@@ -226,7 +226,7 @@ stop_scanning:
 #ifndef NO_HASHDB
             if (ISFLAG(flags, F_HASHDB)) {
               dupelist[x]->mtime = -1;
-              add_hashdb_entry(NULL, 0, dupelist[x]);
+              add_hashdb_entry(NULL, 0, dupelist[x], 0);
           }
 #endif
           } else {
