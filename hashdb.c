@@ -250,7 +250,6 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check, int 
   if (pathlen == 0) pathlen = strlen(path);
   if (get_path_hash(path, pathlen, &path_hash) != 0) return NULL;
   bucket = path_hash & HT_MASK;
-fprintf(stderr, "add hdb: %s\n", path);
 
   if (hashdb[bucket] == NULL) {
     file = alloc_hashdb_node(pathlen);
@@ -278,7 +277,6 @@ fprintf(stderr, "add hdb: %s\n", path);
             return cur;
           } else {
             /* Something changed; invalidate this entry */
-fprintf(stderr, "Invalidating entry for %s\n", cur->path);
             cur->hashcount = 0;
             cur->mtime = -1;
             hashdb_dirty = 1;
