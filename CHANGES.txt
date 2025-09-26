@@ -1,3 +1,7 @@
+jdupes 1.31.1 (2025-09-26)
+
+- Fix hash database behavior for hard linking
+
 jdupes 1.31.0 (2025-09-25)
 
 - Fix issue where hash database entries are written even if invalidated
