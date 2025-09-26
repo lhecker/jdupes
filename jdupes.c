@@ -340,7 +340,7 @@ int main(int argc, char **argv)
       if (errno != 0 || manual_chunk_size < 0 || manual_chunk_size > MAX_CHUNK_OPT_SIZE) {
         fprintf(stderr, "error: -C/--chunk-size '%s' invalid or out of range\n", optarg);
         fprintf(stderr, "%s", s_chunksize_help);
-	exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
       }
       fprintf(stderr, "\nWARNING: The -C/--chunk-size parameter has changed!\n");
       fprintf(stderr, "%s", s_chunksize_help);
@@ -743,13 +743,13 @@ skip_partialonly_noise:
         pop_filehash = get_filehash(curfile, PARTIAL_HASH_SIZE, hash_algo);
         if (pop_filehash == NULL) goto skip_full_check;
         curfile->filehash_partial = *pop_filehash;
-	pop_dirty = 1;
+        pop_dirty = 1;
       }
       if (!ISFLAG(curfile->flags, FF_HASH_FULL)) {
         pop_filehash = get_filehash(curfile, 0, hash_algo);
         if (pop_filehash == NULL) goto skip_full_check;
         curfile->filehash = *pop_filehash;
-	pop_dirty = 1;
+        pop_dirty = 1;
       }
       if (pop_dirty == 1) {
         SETFLAG(curfile->flags, FF_HASH_PARTIAL | FF_HASH_FULL | FF_HASHDB_DIRTY);
@@ -796,7 +796,7 @@ skip_partialonly_noise:
 #endif
         dupecount++;
       } else {
-	goto skip_full_check;
+        goto skip_full_check;
         DBG(hash_fail++;)
       }
     }

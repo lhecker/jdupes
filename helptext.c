@@ -293,7 +293,7 @@ void version_text(int short_version)
     if (sizeof(long) == 4) printf("32-bit");
     else if (sizeof(long) == 8) printf("32-bit i64");
 #if defined(__x86_64__) && SIZE_MAX == 0xffffffff
-	printf(" (x32 ABI)");
+    printf(" (x32 ABI)");
 #endif
   } else printf("%u-bit i%u", (unsigned int)(sizeof(uintptr_t) * 8),
       (unsigned int)(sizeof(long) * 8));

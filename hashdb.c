@@ -278,7 +278,7 @@ hashdb_t *add_hashdb_entry(char *in_path, int pathlen, const file_t *check)
           } else {
             /* Something changed; invalidate this entry */
             cur->hashcount = 0;
-	    cur->mtime = -1;
+            cur->mtime = -1;
             hashdb_dirty = 1;
             return NULL;
           }

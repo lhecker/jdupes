@@ -139,7 +139,7 @@ void deletefiles(file_t *files, int prompt, FILE *tty)
 
         for (x = 1; x <= counter; x++) preserve[x] = 0;
 
-	/* Catch attempts to use invalid characters and block them */
+        /* Catch attempts to use invalid characters and block them */
         for (char *pscheck = preservestr; *pscheck != '\0'; pscheck++) {
           switch (*pscheck) {
             case ',':
@@ -155,16 +155,16 @@ void deletefiles(file_t *files, int prompt, FILE *tty)
             case '\n':
             case '\0':
               continue;
-	    default:
-	      break;
-	  }
+            default:
+              break;
+          }
           if (*pscheck >= '0' && *pscheck <= '9') continue;
           if (*pscheck == '-') {
             fprintf(stderr, "error: number ranges are not yet supported; taking no action\n");
-	    goto skip_deletion;
-	  }
+            goto skip_deletion;
+          }
           fprintf(stderr, "error: invalid character '%c' in preserve answer; taking no action\n", *pscheck);
-	  goto skip_deletion;
+          goto skip_deletion;
         }
         token = strtok(preservestr, " ,\n");
         if (token != NULL) {
@@ -202,7 +202,7 @@ void deletefiles(file_t *files, int prompt, FILE *tty)
           else {
             fprintf(stderr, "invalid number '%u' in preserve answer; taking no action\n", number);
             goto skip_deletion;
-	  }
+          }
 
           token = strtok(NULL, " ,\n");
         }

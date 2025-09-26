@@ -138,14 +138,14 @@ void dedupefiles(file_t * restrict files)
           fprintf(stderr, "       %s\n", s_err_dedupe_notabug);
           fprintf(stderr, "       %s\n", s_err_dedupe_repeated);
           err_twentytwo = 1;
-	}
+        }
         if ((err == -95 || errno == 95) && err_ninetyfive == 0) {
           fprintf(stderr, "       One or more files is on a filesystem that does not support\n");
           fprintf(stderr, "       block-level deduplication or are on different filesystems.\n");
           fprintf(stderr, "       %s\n", s_err_dedupe_notabug);
           fprintf(stderr, "       %s\n", s_err_dedupe_repeated);
           err_ninetyfive = 1;
-	}
+        }
       } else {
         /* Dedupe OK; report to the user and add to file count */
         printf("  ====> %s\n", dupefile->d_name);

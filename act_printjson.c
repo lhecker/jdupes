@@ -82,18 +82,18 @@ static void json_escape(const char * restrict string, char * restrict const targ
         *escaped++ = *string++;
         break;
       default:
-	curr = decode_utf8(&string);
-	if (curr == 0xffffffff) break;
-	if (likely(curr < 0xffff)) {
-	  if (likely(curr < 0x20 || curr > 0x7f))
-	    escape_uni16((uint16_t)curr, &escaped);
-	  else
-	    *escaped++ = (char)curr;
-	} else {
-	  curr -= 0x10000;
-	  escape_uni16((uint16_t)(0xD800 + ((curr >> 10) & 0x03ff)), &escaped);
-	  escape_uni16((uint16_t)(0xDC00 + (curr & 0x03ff)), &escaped);
-	}
+        curr = decode_utf8(&string);
+        if (curr == 0xffffffff) break;
+        if (likely(curr < 0xffff)) {
+          if (likely(curr < 0x20 || curr > 0x7f))
+            escape_uni16((uint16_t)curr, &escaped);
+          else
+            *escaped++ = (char)curr;
+        } else {
+          curr -= 0x10000;
+          escape_uni16((uint16_t)(0xD800 + ((curr >> 10) & 0x03ff)), &escaped);
+          escape_uni16((uint16_t)(0xDC00 + (curr & 0x03ff)), &escaped);
+        }
         break;
     }
   }

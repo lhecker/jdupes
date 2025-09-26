@@ -204,7 +204,7 @@ void linkfiles(file_t *files, const int linktype, const int only_current)
         }
 
         /* Do not attempt to hard link files for which we don't have write access */
-	if (
+        if (
 #ifdef ON_WINDOWS
         !JC_S_ISRO(dupelist[x]->mode) &&
 #endif
@@ -347,10 +347,16 @@ void linkfiles(file_t *files, const int linktype, const int only_current)
             jc_fwprint(stdout, dupelist[x]->d_name, 1);
           }
 #ifndef NO_HASHDB
-          /* Delete the hashdb entry for new hard/symbolic links */
-          if (linktype != 2 && ISFLAG(flags, F_HASHDB)) {
-            dupelist[x]->mtime = 0;
-            add_hashdb_entry(NULL, 0, dupelist[x]);
+          if (ISFLAG(flags, F_HASHDB)) {
+            /* Delete hashdb entry for symlinks - the original file is gone */
+            switch (linktype) {
+              case 0:
+                dupelist[x]->mtime = 0;
+                add_hashdb_entry(NULL, 0, dupelist[x]);
+                break;
+              case 1:
+                
+            }
           }
 #endif
         } else {

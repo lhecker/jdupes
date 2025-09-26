@@ -61,7 +61,7 @@ void printunique(file_t *files)
       chain = scan;
       while (chain != NULL) {
         SETFLAG(chain->flags, FF_NOT_UNIQUE);
-	chain = chain->duplicates;
+        chain = chain->duplicates;
       }
     }
     scan = scan->next;
