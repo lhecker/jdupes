@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <string.h>
+#include <time.h>
 
 #include <libjodycode.h>
 #include "jdupes.h"
@@ -21,6 +22,13 @@
 /* For interactive deletion input */
 #define INPUT_SIZE 1024
 
+
+const char* format_rfc3339_time(time_t t) {
+  static char buffer[32];
+  struct tm* tm_info = gmtime(&t);
+  strftime(buffer, 30, "%Y-%m-%dT%H:%M:%SZ", tm_info);
+  return buffer;
+}
 
 /* Count the following statistics:
    - Maximum number of files in a duplicate set (length of longest dupe chain)
@@ -80,7 +88,8 @@ void deletefiles(file_t *files, int prompt, FILE *tty)
       dupelist[counter] = files;
 
       if (prompt) {
-        printf("[%u] ", counter); jc_fwprint(stdout, files->d_name, 1);
+        const char* time = format_rfc3339_time(files->mtime);
+        printf("[%u] %s %s\n", counter, time, files->d_name);
       }
 
       tmpfile = files->duplicates;
@@ -88,7 +97,8 @@ void deletefiles(file_t *files, int prompt, FILE *tty)
       while (tmpfile) {
         dupelist[++counter] = tmpfile;
         if (prompt) {
-          printf("[%u] ", counter); jc_fwprint(stdout, tmpfile->d_name, 1);
+          const char* time = format_rfc3339_time(tmpfile->mtime);
+          printf("[%u] %s %s\n", counter, time, tmpfile->d_name);
         }
         tmpfile = tmpfile->duplicates;
       }
