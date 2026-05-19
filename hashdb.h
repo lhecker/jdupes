@@ -17,8 +17,8 @@ typedef struct _hashdb {
   uint64_t path_hash;
   char *path;
   int pathlen;
-  uint64_t partialhash;
-  uint64_t fullhash;
+  jdupes_hash_t partialhash;
+  jdupes_hash_t fullhash;
   jdupes_ino_t inode;
   off_t size;
   time_t mtime;

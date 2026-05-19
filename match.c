@@ -183,7 +183,7 @@ file_t **checkmatch(filetree_t * restrict tree, file_t * const restrict file)
 {
   int cmpresult = 0;
   int cantmatch = 0;
-  const uint64_t * restrict filehash;
+  const jdupes_hash_t * restrict filehash;
 #ifndef NO_HASHDB
   int dirtyfile = 0, dirtytree = 0;
 #endif

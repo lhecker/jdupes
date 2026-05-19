@@ -8,14 +8,13 @@
 extern "C" {
 #endif
 
-#define HASH_ALGO_COUNT 2
+#define HASH_ALGO_COUNT 1
 extern const char *hash_algo_list[HASH_ALGO_COUNT];
-#define HASH_ALGO_XXHASH2_64 0
-#define HASH_ALGO_JODYHASH64 1
+#define HASH_ALGO_XXH3 0
 
 #include "jdupes.h"
 
-uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max_read, int algo);
+jdupes_hash_t *get_filehash(const file_t * const restrict checkfile, const size_t max_read, int algo);
 
 #ifdef __cplusplus
 }

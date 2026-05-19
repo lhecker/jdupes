@@ -122,11 +122,7 @@ uintmax_t comparisons = 0;
 static filetree_t *checktree = NULL;
 
 /* Hash algorithm (see filehash.h) */
-#ifdef USE_JODY_HASH
-int hash_algo = HASH_ALGO_JODYHASH64;
-#else
-int hash_algo = HASH_ALGO_XXHASH2_64;
-#endif
+int hash_algo = HASH_ALGO_XXH3;
 
 /* Directory/file parameter position counter */
 unsigned int user_item_count = 1;
@@ -733,7 +729,7 @@ skip_partialonly_noise:
     /* If -Y passed, populate the hash database with this file and do nothing else */
 #ifndef NO_HASHDB
     if (unlikely(ISFLAG(flags, F_HASHDB_POPULATE))) {
-      const uint64_t * restrict pop_filehash;
+      const jdupes_hash_t * restrict pop_filehash;
       int pop_dirty;
       pop_dirty = 0;
       if (!ISFLAG(curfile->flags, FF_HASH_PARTIAL)) {

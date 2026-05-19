@@ -15,9 +15,9 @@
 #include "likely_unlikely.h"
 #include "hashdb.h"
 
-#define HASHDB_VER 2
-#define HASHDB_MIN_VER 1
-#define HASHDB_MAX_VER 2
+#define HASHDB_VER 3
+#define HASHDB_MIN_VER 3
+#define HASHDB_MAX_VER 3
 #ifndef PH_SHIFT
  #define PH_SHIFT 12
 #endif
@@ -27,6 +27,9 @@
  #define HT_SIZE 131072
 #endif
 #define HT_MASK (HT_SIZE - 1)
+
+#define HASHDB_HEX_LEN ((unsigned int)(2 * sizeof(hash_canonical_t)))
+#define HASHDB_FIXED_LEN (2u + 2u * (HASHDB_HEX_LEN + 1u) + 3u * 17u)
 
 static hashdb_t *hashdb[HT_SIZE];
 static int hashdb_init = 0;
@@ -39,6 +42,8 @@ enum pivot { PIVOT_LEFT, PIVOT_RIGHT };
 
 static int write_hashdb_entry(FILE *db, hashdb_t *cur, uint64_t *cnt, const int destroy);
 static int get_path_hash(char *path, int pathlen, uint64_t *path_hash);
+static int hex_to_hash(const char *hex, jdupes_hash_t *out);
+static void hash_to_hex(const jdupes_hash_t *hash, char *buffer);
 
 
 #if 0
@@ -155,8 +160,12 @@ static int write_hashdb_entry(FILE *db, hashdb_t *cur, uint64_t *cnt, const int 
 
   /* Write out this node if it wasn't invalidated */
   if (hashdb_dirty == 1 && cur->hashcount != 0 && cur->mtime != -1) {
-    snprintf(out, JC_PATHBUF_SIZE + 127, "%u,%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%s\n",
-      cur->hashcount, cur->partialhash, cur->fullhash, (uint64_t)cur->mtime, (uint64_t)cur->size, (uint64_t)cur->inode, cur->path);
+    char partial_hex[2 * sizeof(hash_canonical_t) + 1];
+    char full_hex[2 * sizeof(hash_canonical_t) + 1];
+    hash_to_hex(&cur->partialhash, partial_hex);
+    hash_to_hex(&cur->fullhash, full_hex);
+    snprintf(out, JC_PATHBUF_SIZE + 127, "%u,%s,%s,%016" PRIx64 ",%016" PRIx64 ",%016" PRIx64 ",%s\n",
+      cur->hashcount, partial_hex, full_hex, (uint64_t)cur->mtime, (uint64_t)cur->size, (uint64_t)cur->inode, cur->path);
     (*cnt)++;
     LOUD(fprintf(stderr, "write hashdb: %s", out);)
     errno = 0;
@@ -383,16 +392,14 @@ int64_t load_hash_database(const char * const restrict dbname)
   if (db_ver < HASHDB_MIN_VER || db_ver > HASHDB_MAX_VER) goto error_hashdb_version;
   if (hashdb_algo != hash_algo) goto warn_hashdb_algo;
 
-  /* v1 has 8-byte sizes; v2 has 16-byte (4GiB+) sizes */
-  fixed_len = 87;
-  if (db_ver == 1) fixed_len = 71;
+  fixed_len = HASHDB_FIXED_LEN;
 
   /* Read database entries */
   while (1) {
     int pathlen;
     unsigned int linelen;
     int hashcount;
-    uint64_t partialhash, fullhash = 0;
+    jdupes_hash_t partialhash, fullhash = (jdupes_hash_t){ 0 };
     time_t mtime;
     char *path;
     char *cleanpath;
@@ -417,9 +424,9 @@ int64_t load_hash_database(const char * const restrict dbname)
     hashcount = (int)strtol(field, NULL, 16);
     if (hashcount < 1 || hashcount > 2) goto error_hashdb_line;
     field = strtok(NULL, ","); if (field == NULL) goto error_hashdb_line;
-    partialhash = strtoull(field, NULL, 16);
+    if (hex_to_hash(field, &partialhash) != 0) goto error_hashdb_line;
     field = strtok(NULL, ","); if (field == NULL) goto error_hashdb_line;
-    if (hashcount == 2) fullhash = strtoull(field, NULL, 16);
+    if (hashcount == 2 && hex_to_hash(field, &fullhash) != 0) goto error_hashdb_line;
     field = strtok(NULL, ","); if (field == NULL) goto error_hashdb_line;
     mtime = (time_t)strtoul(field, NULL, 16);
     field = strtok(NULL, ","); if (field == NULL) goto error_hashdb_line;
@@ -496,6 +503,45 @@ static int get_path_hash(char *path, int pathlen, uint64_t *path_hash)
     retval = jc_block_hash(NORMAL, (uint64_t *)aligned_path, path_hash, strlen((char *)aligned_path));
   } else retval = jc_block_hash(NORMAL, (uint64_t *)path, path_hash, strlen(path));
   return retval;
+}
+
+
+static int hex_to_hash(const char *hex, jdupes_hash_t *out)
+{
+  hash_canonical_t canonical;
+
+  for (size_t i = 0; i < sizeof(canonical.digest); ++i) {
+    unsigned char nibble[2];
+
+    for (size_t j = 0; j < 2; ++j) {
+      char ch = hex[2 * i + j];
+      if (ch >= '0' && ch <= '9') nibble[j] = (unsigned char)(ch - '0');
+      else if (ch >= 'a' && ch <= 'f') nibble[j] = (unsigned char)(ch - 'a' + 10);
+      else if (ch >= 'A' && ch <= 'F') nibble[j] = (unsigned char)(ch - 'A' + 10);
+      else return 1;
+    }
+    canonical.digest[i] = (unsigned char)((nibble[0] << 4) | nibble[1]);
+  }
+  if (hex[2 * sizeof(canonical.digest)] != '\0') return 1;
+
+  *out = HASH_FROM_CANONICAL(&canonical);
+  return 0;
+}
+
+
+static void hash_to_hex(const jdupes_hash_t *hash, char *buffer)
+{
+  hash_canonical_t canonical;
+  static const char lut[] = "0123456789abcdef";
+
+  HASH_CANONICAL(&canonical, *hash);
+
+  for (size_t i = 0; i < sizeof(canonical.digest); ++i) {
+    unsigned char v = canonical.digest[i];
+    buffer[2 * i + 0] = lut[v >> 4];
+    buffer[2 * i + 1] = lut[v & 15];
+  }
+  buffer[2 * sizeof(canonical.digest)] = '\0';
 }
 
 

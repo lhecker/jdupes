@@ -42,6 +42,11 @@ COMPILER_OPTIONS += -Wshadow -Wfloat-equal -Waggregate-return -Wcast-qual -Wswit
 COMPILER_OPTIONS += -std=gnu11 -D_FILE_OFFSET_BITS=64 -fstrict-aliasing -pipe
 COMPILER_OPTIONS += -DNO_ATIME
 
+ifdef USE_LTO
+ COMPILER_OPTIONS += -flto
+ LINK_OPTIONS += -flto
+endif
+
 # Remove unused code if requested
 ifdef GC_SECTIONS
  COMPILER_OPTIONS += -fdata-sections -ffunction-sections
@@ -138,7 +143,8 @@ ifdef USE_JODY_HASH
  OBJS_CLEAN += xxhash.o
  else
  ifndef EXTERNAL_HASH_LIB
-  OBJS += xxhash.o
+  OBJS += xxhash.o xxh_x86dispatch_wrapper.o
+  xxhash.o xxh_x86dispatch_wrapper.o: CFLAGS += -w
  endif
 endif  # USE_JODY_HASH
 
@@ -156,6 +162,10 @@ endif
 
 # Don't do clonefile on Mac OS X < 10.13 (High Sierra)
 ifeq ($(UNAME_S), Darwin)
+ ifndef NO_MACOS
+  ON_MACOS = 1
+  COMPILER_OPTIONS += -DON_MACOS=1
+ endif
  DARWINVER := $(shell expr `uname -r | cut -d. -f1` \< 17)
  ifeq "$(DARWINVER)" "1"
   COMPILER_OPTIONS += -DNO_CLONEFILE=1
@@ -200,18 +210,18 @@ endif
 
 ### Find and use nearby libjodycode by default
 ifndef IGNORE_NEARBY_JC
- ifneq ("$(wildcard ../libjodycode/libjodycode.h)","")
-  $(info Found and using nearby libjodycode at ../libjodycode)
-  COMPILER_OPTIONS += -I../libjodycode -L../libjodycode
-  ifeq ("$(wildcard ../libjodycode/version.o)","")
-   $(error You must build libjodycode before building jdupes)
+ ifneq ("$(wildcard libjodycode/libjodycode.h)","")
+  $(info Found and using nearby libjodycode at libjodycode)
+  COMPILER_OPTIONS += -Ilibjodycode -Llibjodycode
+  ifeq ("$(wildcard libjodycode/version.o)","")
+   $(shell $(MAKE) -C libjodycode)
   endif
-  ifneq ("$(wildcard ../libjodycode/libjodycode.a)","")
+  ifneq ("$(wildcard libjodycode/libjodycode.a)","")
    $(info Overriding static library extension .lib for found extension .a)
    LIB_EXT=.a
   endif
-  STATIC_LDFLAGS += ../libjodycode/libjodycode$(LIB_EXT)
-  DYN_LDFLAGS += -l:../libjodycode/libjodycode$(SO_EXT)
+  STATIC_LDFLAGS += libjodycode/libjodycode$(LIB_EXT)
+  DYN_LDFLAGS += -l:libjodycode/libjodycode$(SO_EXT)
  else
   STATIC_LDFLAGS += -ljodycode
   DYN_LDFLAGS += -ljodycode
@@ -305,7 +315,7 @@ package:
 .PHONY: ljc_vercheck_static ljc_vercheck_dynamic
 
 ljc_vercheck_dynamic:
-	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(LJC_DYNAMIC) -o ljc_vercheck$(SUFFIX)
+	$(CC) $(CFLAGS) $(CPPFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(LJC_DYNAMIC) -o ljc_vercheck$(SUFFIX)
 	@echo
 	@./ljc_vercheck 2>/dev/null || echo "Version check failed. Install libjodycode on the system and try again."
 	@if [ `(./ljc_vercheck$(SUFFIX) 2>/dev/null || echo ":0:0:0:0") | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
@@ -315,7 +325,7 @@ ljc_vercheck_dynamic:
 	@echo
 
 ljc_vercheck_static:
-	$(CC) $(CFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(BSTATIC) $(STATIC_LDFLAGS) $(BDYNAMIC) -o ljc_vercheck$(SUFFIX)
+	$(CC) $(CFLAGS) $(CPPFLAGS) libjodycode_check.c -DSTANDALONE $(LDFLAGS) $(BSTATIC) $(STATIC_LDFLAGS) $(BDYNAMIC) -o ljc_vercheck$(SUFFIX)
 	@echo
 	@./ljc_vercheck 2>/dev/null
 	@if [ `(./ljc_vercheck$(SUFFIX) 2>/dev/null || echo ":0:0:0:0") | cut -d: -f4` -lt `grep MY_FEATURELEVEL_REQ libjodycode_check.h | cut -d" " -f3` ]; \
@@ -325,4 +335,4 @@ ljc_vercheck_static:
 	@echo
 
 libjodycode_hint:
-	$(info hint: if ../libjodycode is built but jdupes won't run, try doing 'make static_jc')
+	$(info hint: if libjodycode is built but jdupes won't run, try doing 'make static_jc')

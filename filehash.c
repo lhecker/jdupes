@@ -23,11 +23,9 @@
 #include "jdupes.h"
 #include "xxhash.h"
 
-const char *hash_algo_list[2] = {
-  "xxHash64 v2",
-  "jodyhash v7"
+const char *hash_algo_list[1] = {
+  "XXH3",
 };
-
 
 /* Hash part or all of a file
  *
@@ -37,16 +35,16 @@ const char *hash_algo_list[2] = {
  * NOT accept any pull requests that change the hash function unless there
  * is an EXTREMELY compelling reason to do so. Do not waste your time with
  * swapping hash functions. If you want to do it for fun then that's fine. */
-uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max_read, int algo)
+jdupes_hash_t *get_filehash(const file_t * const restrict checkfile, const size_t max_read, int algo)
 {
   off_t fsize;
   /* This is an array because we return a pointer to it */
-  static uint64_t hash[1];
+  static jdupes_hash_t hash[1];
   static uint64_t *chunk = NULL;
   FILE *file = NULL;
   int hashing = 0;
 #ifndef NO_XXHASH2
-  XXH64_state_t *xxhstate = NULL;
+  hash_state_t xxhstate;
 #endif
 #ifdef __linux__
   int filenum;
@@ -80,7 +78,7 @@ uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max
    * the computed hash for that chunk as our starting point.
    */
 
-  *hash = 0;
+  *hash = (jdupes_hash_t){ 0 };
   if (ISFLAG(checkfile->flags, FF_HASH_PARTIAL)) {
     *hash = checkfile->filehash_partial;
     /* Don't bother going further if max_read is already fulfilled */
@@ -119,10 +117,8 @@ uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max
 
 /* WARNING: READ NOTICE ABOVE get_filehash() BEFORE CHANGING HASH FUNCTIONS! */
 #ifndef NO_XXHASH2
-  if (algo == HASH_ALGO_XXHASH2_64) {
-    xxhstate = XXH64_createState();
-    if (unlikely(xxhstate == NULL)) jc_nullptr("xxhstate");
-    XXH64_reset(xxhstate, 0);
+  if (algo == HASH_ALGO_XXH3) {
+    HASH_RESET(&xxhstate);
   }
 #endif /* NO_XXHASH2 */
 
@@ -136,13 +132,10 @@ uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max
 
   switch (algo) {
 #ifndef NO_XXHASH2
-    case HASH_ALGO_XXHASH2_64:
-      if (unlikely(XXH64_update(xxhstate, chunk, bytes_to_read) != XXH_OK)) goto error_reading_file;
+    case HASH_ALGO_XXH3:
+      if (unlikely(HASH_UPDATE(&xxhstate, chunk, bytes_to_read) != XXH_OK)) goto error_reading_file;
       break;
 #endif
-    case HASH_ALGO_JODYHASH64:
-      if (unlikely(jc_block_hash(NORMAL, chunk, hash, bytes_to_read) != 0)) goto error_reading_file;
-      break;
     default:
       goto error_bad_hash_algo;
   }
@@ -167,9 +160,8 @@ uint64_t *get_filehash(const file_t * const restrict checkfile, const size_t max
   jc_fclose(file);
 
 #ifndef NO_XXHASH2
-  if (algo == HASH_ALGO_XXHASH2_64) {
-    *hash = XXH64_digest(xxhstate);
-    XXH64_freeState(xxhstate);
+  if (algo == HASH_ALGO_XXH3) {
+    *hash = HASH_DIGEST(&xxhstate);
   }
 #endif /* NO_XXHASH2 */
 

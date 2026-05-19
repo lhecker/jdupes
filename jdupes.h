@@ -108,9 +108,48 @@ extern uintmax_t comparisons;
  #define DBG(a)
 #endif
 
+#if defined(UINTPTR_MAX) && defined(UINT32_MAX) && UINTPTR_MAX <= UINT32_MAX
+ #define USE_XXH64 1
+#else
+ #define USE_XXH128 1
+ #if defined(__x86_64__) || defined(__i386__) || defined(_M_IX86) || defined(_M_X64)
+  #define USE_XXH128_DISPATCH 1
+ #endif
+#endif
 
-/* Compare two hashes like memcmp() */
-#define HASH_COMPARE(a,b) ((a > b) ? 1:((a == b) ? 0:-1))
+#define XXH_STATIC_LINKING_ONLY
+#ifdef USE_XXH128_DISPATCH
+ #include "xxh_x86dispatch.h"
+#else
+ #include "xxhash.h"
+#endif
+
+/* Set hash type (change this if swapping in a different hash function) */
+#ifdef USE_XXH128
+ typedef XXH128_hash_t jdupes_hash_t;
+#else
+ typedef XXH64_hash_t jdupes_hash_t;
+#endif
+
+#ifdef USE_XXH128
+ typedef XXH3_state_t hash_state_t;
+ typedef XXH128_canonical_t hash_canonical_t;
+ #define HASH_COMPARE(a,b) XXH128_cmp(&a, &b)
+ #define HASH_RESET(state) XXH3_128bits_reset(state)
+ #define HASH_UPDATE(state, input, len) XXH3_128bits_update(state, input, len)
+ #define HASH_DIGEST(state) XXH3_128bits_digest(state)
+ #define HASH_CANONICAL(canonical, hash) XXH128_canonicalFromHash(canonical, hash)
+ #define HASH_FROM_CANONICAL(canonical) XXH128_hashFromCanonical(canonical)
+#else
+ typedef XXH64_state_t hash_state_t;
+ typedef XXH64_canonical_t hash_canonical_t;
+ #define HASH_COMPARE(a,b) ((a > b) ? 1:((a == b) ? 0:-1))
+ #define HASH_RESET(state) XXH64_reset(state, 0)
+ #define HASH_UPDATE(state, input, len) XXH64_update(state, input, len)
+ #define HASH_DIGEST(state) XXH64_digest(state)
+ #define HASH_CANONICAL(canonical, hash) XXH64_canonicalFromHash(canonical, hash)
+ #define HASH_FROM_CANONICAL(canonical) XXH64_hashFromCanonical(canonical)
+#endif
 
 /* Extend an allocation length to the next 64-bit (8-byte) boundary */
 #define EXTEND64(a) (((a) & 0x7) > 0 ? (((a) & (~0x7)) + 8) : (a))
@@ -188,8 +227,8 @@ typedef struct _file {
   struct _file *next;
   char *d_name;
   int d_name_len;
-  uint64_t filehash_partial;
-  uint64_t filehash;
+  jdupes_hash_t filehash_partial;
+  jdupes_hash_t filehash;
   jdupes_ino_t inode;
   off_t size;
 #ifndef NO_MTIME
